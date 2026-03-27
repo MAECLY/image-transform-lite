@@ -3,6 +3,12 @@
 Todos los cambios notables de este proyecto se documentan aqui.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.2.1] - 2026-03-27
+
+### Fixed
+- Dropdown menu: clicks en "Buscar actualizaciones" y "Acerca de" no ejecutaban la accion (evento burbuja cerraba el menu antes del handler)
+- Resultados de "Buscar actualizaciones" y "Acerca de" ahora se muestran en un modal dialog centrado en pantalla (antes solo aparecian en la barra de estado al fondo, dificil de ver)
+
 ## [1.2.0] - 2026-03-27
 
 ### Added

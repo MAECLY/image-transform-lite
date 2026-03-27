@@ -327,19 +327,42 @@ document.getElementById("update-dismiss").addEventListener("click", () => {
 });
 
 // Dropdown menu
+const dropdownMenu = document.getElementById("dropdown-menu");
+
 document.getElementById("btn-menu").addEventListener("click", (e) => {
     e.stopPropagation();
-    document.getElementById("dropdown-menu").classList.toggle("open");
+    dropdownMenu.classList.toggle("open");
 });
 
 document.addEventListener("click", () => {
-    document.getElementById("dropdown-menu").classList.remove("open");
+    dropdownMenu.classList.remove("open");
+});
+
+// Prevent dropdown items from bubbling to document (which closes menu before handler runs)
+dropdownMenu.addEventListener("click", (e) => {
+    e.stopPropagation();
+});
+
+// Modal helper
+function showModal(html) {
+    document.getElementById("modal-body").innerHTML = html;
+    document.getElementById("modal-overlay").style.display = "flex";
+}
+
+document.getElementById("modal-close").addEventListener("click", () => {
+    document.getElementById("modal-overlay").style.display = "none";
+});
+
+document.getElementById("modal-overlay").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) {
+        document.getElementById("modal-overlay").style.display = "none";
+    }
 });
 
 // Manual check for updates
 document.getElementById("menu-check-updates").addEventListener("click", async () => {
-    document.getElementById("dropdown-menu").classList.remove("open");
-    setStatus("Buscando actualizaciones...", "");
+    dropdownMenu.classList.remove("open");
+    showModal("Buscando actualizaciones...");
     try {
         const result = await pywebview.api.check_for_updates();
         if (result && result.update_available) {
@@ -348,23 +371,23 @@ document.getElementById("menu-check-updates").addEventListener("click", async ()
             const link = document.getElementById("update-link");
             link.href = result.download_url || result.release_url;
             document.getElementById("update-banner").style.display = "flex";
-            setStatus("");
+            showModal(`Nueva version <strong>${result.latest_version}</strong> disponible.<br><a href="${result.download_url || result.release_url}" target="_blank" style="color:var(--accent)">Descargar</a>`);
         } else {
-            setStatus("Ya tienes la ultima version.", "success");
+            showModal("Ya tienes la ultima version.");
         }
     } catch (e) {
-        setStatus("No se pudo verificar actualizaciones.", "error");
+        showModal("No se pudo verificar actualizaciones.");
     }
 });
 
 // About
 document.getElementById("menu-about").addEventListener("click", async () => {
-    document.getElementById("dropdown-menu").classList.remove("open");
+    dropdownMenu.classList.remove("open");
     try {
         const version = await pywebview.api.get_version();
-        setStatus(`Image Transform Lite v${version}`, "");
+        showModal(`<strong>Image Transform Lite</strong><br>Version ${version}<br><br><span style="font-size:12px;color:var(--text-secondary)">macOS Apple Silicon</span>`);
     } catch (e) {
-        setStatus("Image Transform Lite", "");
+        showModal("<strong>Image Transform Lite</strong>");
     }
 });
 
