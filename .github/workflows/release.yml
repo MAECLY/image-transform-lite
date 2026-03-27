@@ -67,33 +67,27 @@ jobs:
 
       - name: Extract changelog for this version
         id: changelog
+        shell: bash
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          # Extract section between ## [VERSION] and the next ## [
-          NOTES=$(sed -n "/^## \[${VERSION}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
-          if [ -z "$NOTES" ]; then
-            NOTES="Release v${VERSION}"
-          fi
-          # Write to file to preserve multiline
-          echo "$NOTES" > /tmp/release_notes.txt
-          # Append install instructions
-          cat >> /tmp/release_notes.txt << 'INSTALL'
-
----
-
-### Instalacion (recomendado)
-1. Descargar `Image-Transform-Lite-VERSION-arm64.pkg`
-2. Doble click para instalar
-3. Se instala automaticamente en `/Applications`
-4. Primera vez: click derecho → Abrir (macOS Gatekeeper)
-
-### Alternativa (manual)
-1. Descargar `Image-Transform-Lite-VERSION-arm64.zip`
-2. Descomprimir y mover `Image Transform Lite.app` a Aplicaciones
-
-**Plataforma:** macOS Apple Silicon (arm64)
-INSTALL
-          sed -i '' "s/VERSION/${VERSION}/g" /tmp/release_notes.txt
+          python3 -c "
+          import re, sys
+          text = open('CHANGELOG.md').read()
+          pattern = r'## \[' + re.escape('$VERSION') + r'\].*?\n(.*?)(?=\n## \[|\Z)'
+          m = re.search(pattern, text, re.DOTALL)
+          notes = m.group(1).strip() if m else 'Release v$VERSION'
+          print(notes)
+          " > /tmp/release_notes.txt
+          printf '\n---\n\n' >> /tmp/release_notes.txt
+          printf '### Instalacion (recomendado)\n' >> /tmp/release_notes.txt
+          printf '1. Descargar \`Image-Transform-Lite-%s-arm64.pkg\`\n' "$VERSION" >> /tmp/release_notes.txt
+          printf '2. Doble click para instalar\n' >> /tmp/release_notes.txt
+          printf '3. Se instala automaticamente en \`/Applications\`\n' >> /tmp/release_notes.txt
+          printf '4. Primera vez: click derecho -> Abrir (macOS Gatekeeper)\n\n' >> /tmp/release_notes.txt
+          printf '### Alternativa (manual)\n' >> /tmp/release_notes.txt
+          printf '1. Descargar \`Image-Transform-Lite-%s-arm64.zip\`\n' "$VERSION" >> /tmp/release_notes.txt
+          printf '2. Descomprimir y mover \`Image Transform Lite.app\` a Aplicaciones\n\n' >> /tmp/release_notes.txt
+          printf '**Plataforma:** macOS Apple Silicon (arm64)\n' >> /tmp/release_notes.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
