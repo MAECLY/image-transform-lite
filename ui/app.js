@@ -94,6 +94,28 @@ async function init() {
     config = await pywebview.api.get_config();
     renderConfig();
     refreshFileCount();
+
+    // Show version
+    try {
+        const version = await pywebview.api.get_version();
+        document.getElementById("app-version").textContent = "v" + version;
+    } catch (e) {}
+
+    // Check for updates after UI is ready
+    checkForUpdates();
+}
+
+async function checkForUpdates() {
+    try {
+        const result = await pywebview.api.check_for_updates();
+        if (result && result.update_available) {
+            document.getElementById("update-msg").textContent =
+                `Nueva version ${result.latest_version} disponible.`;
+            const link = document.getElementById("update-link");
+            link.href = result.download_url || result.release_url;
+            document.getElementById("update-banner").style.display = "flex";
+        }
+    } catch (e) {}
 }
 
 function renderConfig() {
@@ -297,6 +319,11 @@ function pollProgress() {
 // Open output
 document.getElementById("btn-open-output").addEventListener("click", () => {
     pywebview.api.open_output_directory();
+});
+
+// Dismiss update banner
+document.getElementById("update-dismiss").addEventListener("click", () => {
+    document.getElementById("update-banner").style.display = "none";
 });
 
 // Reset

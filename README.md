@@ -2,7 +2,7 @@
 
 Aplicacion de escritorio para Mac que permite procesar imagenes en lote con transformaciones configurables. Interfaz grafica donde puedes activar/desactivar transformaciones, ajustar parametros y cambiar el orden de ejecucion arrastrando las tarjetas.
 
-![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-black) ![Python](https://img.shields.io/badge/Python-3.11-blue) ![License](https://img.shields.io/badge/license-private-red)
+![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-black) ![Python](https://img.shields.io/badge/Python-3.11-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Transformaciones disponibles
 

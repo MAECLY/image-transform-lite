@@ -342,3 +342,51 @@ body {
 }
 .status-msg.success { color: var(--success); font-weight: 500; }
 .status-msg.error { color: var(--danger); }
+
+/* Update banner */
+.update-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #856404;
+}
+
+.update-banner a {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.update-banner a:hover {
+    text-decoration: underline;
+}
+
+.update-dismiss {
+    margin-left: auto;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #856404;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.update-dismiss:hover {
+    color: var(--text);
+}
+
+/* Version badge */
+.version-badge {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    vertical-align: middle;
+}

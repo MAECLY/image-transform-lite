@@ -2,6 +2,8 @@ import subprocess
 
 from app.config import AppConfig
 from app.processor import BatchProcessor, discover_images
+from app.updater import check_for_updates as _check_updates
+from app.version import __version__
 
 
 class Api:
@@ -73,6 +75,12 @@ class Api:
         out_dir = self.config.resolve_output_dir()
         out_dir.mkdir(parents=True, exist_ok=True)
         subprocess.Popen(["open", str(out_dir)])
+
+    def get_version(self) -> str:
+        return __version__
+
+    def check_for_updates(self) -> dict:
+        return _check_updates(__version__)
 
     def reset_config(self) -> dict:
         self.config = AppConfig()

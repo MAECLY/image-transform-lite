@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller pytest
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify version matches code
+        run: |
+          CODE_VERSION=$(python -c "exec(open('app/version.py').read()); print(__version__)")
+          TAG_VERSION="${{ steps.version.outputs.VERSION }}"
+          if [ "$CODE_VERSION" != "$TAG_VERSION" ]; then
+            echo "ERROR: Tag version ($TAG_VERSION) does not match code version ($CODE_VERSION)"
+            exit 1
+          fi
+
+      - name: Build .app
+        run: pyinstaller build.spec --clean --noconfirm
+
+      - name: Create .zip artifact
+        run: |
+          cd dist
+          zip -r "Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip" "Image Transform Lite.app"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Image Transform Lite v${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## Image Transform Lite v${{ steps.version.outputs.VERSION }}
+
+            ### Instalacion
+            1. Descargar `Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip`
+            2. Descomprimir
+            3. Mover `Image Transform Lite.app` a Aplicaciones
+            4. Primera vez: click derecho → Abrir (macOS Gatekeeper)
+
+            **Plataforma:** macOS Apple Silicon (arm64)
+          files: |
+            dist/Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip
+          draft: false
+          prerelease: false

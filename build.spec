@@ -1,6 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import os
+import re
+
+# Read version from app/version.py without importing the package
+_version_file = os.path.join(os.path.dirname(os.path.abspath('build.spec')), 'app', 'version.py')
+with open(_version_file) as f:
+    _version_match = re.search(r"^__version__\s*=\s*['\"]([^'\"]+)['\"]", f.read(), re.M)
+_app_version = _version_match.group(1) if _version_match else '0.0.0'
 
 block_cipher = None
 
@@ -18,6 +25,7 @@ a = Analysis(
         'PIL.Image',
         'PIL.ImageOps',
         'PIL.ImageEnhance',
+        'objc',
     ],
     hookspath=[],
     hooksconfig={},
@@ -61,7 +69,7 @@ app = BUNDLE(
     name='Image Transform Lite.app',
     bundle_identifier='com.fiftyflowers.imagetransformlite',
     info_plist={
-        'CFBundleShortVersionString': '1.0.0',
+        'CFBundleShortVersionString': _app_version,
         'CFBundleName': 'Image Transform Lite',
         'NSHighResolutionCapable': True,
         'NSRequiresAquaSystemAppearance': False,

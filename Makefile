@@ -4,7 +4,7 @@ ACTIVATE   := source $(VENV)/bin/activate
 APP_NAME   := Image Transform Lite
 DIST_APP   := dist/$(APP_NAME).app
 
-.PHONY: help venv install test run build dist clean clean-all
+.PHONY: help venv install test run build dist version release clean clean-all
 
 help: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -35,6 +35,16 @@ build: install ## Construye el .app bundle
 dist: build ## Construye y genera el .zip para distribuir
 	@cd dist && zip -r "$(APP_NAME).zip" "$(APP_NAME).app" -q
 	@echo "Zip listo: dist/$(APP_NAME).zip"
+
+version: ## Muestra la version actual de la app
+	@$(ACTIVATE) && python -c "from app.version import __version__; print(__version__)"
+
+release: dist ## Crea tag y push para triggear release en GitHub Actions
+	@$(ACTIVATE) && VERSION=$$(python -c "from app.version import __version__; print(__version__)") && \
+	echo "Creando release v$$VERSION..." && \
+	git tag -a "v$$VERSION" -m "Release v$$VERSION" && \
+	git push origin "v$$VERSION" && \
+	echo "Tag v$$VERSION pushed. GitHub Actions creara el release automaticamente."
 
 clean: ## Limpia archivos de build
 	rm -rf build/ dist/ *.spec.bak __pycache__ .pytest_cache
