@@ -48,6 +48,23 @@ jobs:
           cd dist
           zip -r "Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip" "Image Transform Lite.app"
 
+      - name: Create .pkg installer
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          PKG_NAME="Image-Transform-Lite-${VERSION}-arm64.pkg"
+
+          # Create staging directory with Applications target
+          mkdir -p pkg-root/Applications
+          cp -R "dist/Image Transform Lite.app" "pkg-root/Applications/"
+
+          # Build the .pkg
+          pkgbuild \
+            --root pkg-root \
+            --identifier com.fiftyflowers.imagetransformlite \
+            --version "$VERSION" \
+            --install-location / \
+            "dist/${PKG_NAME}"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -55,14 +72,19 @@ jobs:
           body: |
             ## Image Transform Lite v${{ steps.version.outputs.VERSION }}
 
-            ### Instalacion
-            1. Descargar `Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip`
-            2. Descomprimir
-            3. Mover `Image Transform Lite.app` a Aplicaciones
+            ### Instalacion (recomendado)
+            1. Descargar `Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.pkg`
+            2. Doble click para instalar
+            3. Se instala automaticamente en `/Applications`
             4. Primera vez: click derecho → Abrir (macOS Gatekeeper)
+
+            ### Alternativa (manual)
+            1. Descargar `Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip`
+            2. Descomprimir y mover `Image Transform Lite.app` a Aplicaciones
 
             **Plataforma:** macOS Apple Silicon (arm64)
           files: |
+            dist/Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.pkg
             dist/Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip
           draft: false
           prerelease: false
