@@ -50,6 +50,58 @@ body {
     letter-spacing: -0.3px;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Dropdown menu */
+.dropdown {
+    position: relative;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    min-width: 200px;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.dropdown-menu.open {
+    display: block;
+}
+
+.dropdown-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.dropdown-menu button:hover {
+    background: var(--bg);
+}
+
+.dropdown-menu button + button {
+    border-top: 1px solid var(--border);
+}
+
 .btn-icon {
     background: none;
     border: none;

@@ -326,6 +326,48 @@ document.getElementById("update-dismiss").addEventListener("click", () => {
     document.getElementById("update-banner").style.display = "none";
 });
 
+// Dropdown menu
+document.getElementById("btn-menu").addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.getElementById("dropdown-menu").classList.toggle("open");
+});
+
+document.addEventListener("click", () => {
+    document.getElementById("dropdown-menu").classList.remove("open");
+});
+
+// Manual check for updates
+document.getElementById("menu-check-updates").addEventListener("click", async () => {
+    document.getElementById("dropdown-menu").classList.remove("open");
+    setStatus("Buscando actualizaciones...", "");
+    try {
+        const result = await pywebview.api.check_for_updates();
+        if (result && result.update_available) {
+            document.getElementById("update-msg").textContent =
+                `Nueva version ${result.latest_version} disponible.`;
+            const link = document.getElementById("update-link");
+            link.href = result.download_url || result.release_url;
+            document.getElementById("update-banner").style.display = "flex";
+            setStatus("");
+        } else {
+            setStatus("Ya tienes la ultima version.", "success");
+        }
+    } catch (e) {
+        setStatus("No se pudo verificar actualizaciones.", "error");
+    }
+});
+
+// About
+document.getElementById("menu-about").addEventListener("click", async () => {
+    document.getElementById("dropdown-menu").classList.remove("open");
+    try {
+        const version = await pywebview.api.get_version();
+        setStatus(`Image Transform Lite v${version}`, "");
+    } catch (e) {
+        setStatus("Image Transform Lite", "");
+    }
+});
+
 // Reset
 document.getElementById("btn-reset").addEventListener("click", async () => {
     config = await pywebview.api.reset_config();

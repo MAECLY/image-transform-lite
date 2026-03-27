@@ -67,6 +67,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='Image Transform Lite.app',
+    icon='assets/icon.icns',
     bundle_identifier='com.fiftyflowers.imagetransformlite',
     info_plist={
         'CFBundleShortVersionString': _app_version,
