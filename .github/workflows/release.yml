@@ -65,24 +65,41 @@ jobs:
             --install-location / \
             "dist/${PKG_NAME}"
 
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          # Extract section between ## [VERSION] and the next ## [
+          NOTES=$(sed -n "/^## \[${VERSION}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
+          if [ -z "$NOTES" ]; then
+            NOTES="Release v${VERSION}"
+          fi
+          # Write to file to preserve multiline
+          echo "$NOTES" > /tmp/release_notes.txt
+          # Append install instructions
+          cat >> /tmp/release_notes.txt << 'INSTALL'
+
+---
+
+### Instalacion (recomendado)
+1. Descargar `Image-Transform-Lite-VERSION-arm64.pkg`
+2. Doble click para instalar
+3. Se instala automaticamente en `/Applications`
+4. Primera vez: click derecho → Abrir (macOS Gatekeeper)
+
+### Alternativa (manual)
+1. Descargar `Image-Transform-Lite-VERSION-arm64.zip`
+2. Descomprimir y mover `Image Transform Lite.app` a Aplicaciones
+
+**Plataforma:** macOS Apple Silicon (arm64)
+INSTALL
+          sed -i '' "s/VERSION/${VERSION}/g" /tmp/release_notes.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "Image Transform Lite v${{ steps.version.outputs.VERSION }}"
-          body: |
-            ## Image Transform Lite v${{ steps.version.outputs.VERSION }}
-
-            ### Instalacion (recomendado)
-            1. Descargar `Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.pkg`
-            2. Doble click para instalar
-            3. Se instala automaticamente en `/Applications`
-            4. Primera vez: click derecho → Abrir (macOS Gatekeeper)
-
-            ### Alternativa (manual)
-            1. Descargar `Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip`
-            2. Descomprimir y mover `Image Transform Lite.app` a Aplicaciones
-
-            **Plataforma:** macOS Apple Silicon (arm64)
+          body_path: /tmp/release_notes.txt
           files: |
             dist/Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.pkg
             dist/Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip

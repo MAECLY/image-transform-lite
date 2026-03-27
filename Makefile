@@ -55,6 +55,7 @@ version: ## Muestra la version actual de la app
 
 release: dist ## Crea tag y push para triggear release en GitHub Actions
 	@$(ACTIVATE) && VERSION=$$(python -c "from app.version import __version__; print(__version__)") && \
+	grep -q "## \[$$VERSION\]" CHANGELOG.md || (echo "ERROR: CHANGELOG.md no tiene entrada para v$$VERSION" && exit 1) && \
 	echo "Creando release v$$VERSION..." && \
 	git tag -a "v$$VERSION" -m "Release v$$VERSION" && \
 	git push origin "v$$VERSION" && \
