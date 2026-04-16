@@ -1,0 +1,30 @@
+{
+  "flip_enabled": true,
+  "flip_direction": "horizontal",
+  "rotate_enabled": true,
+  "rotate_degrees": 2,
+  "crop_enabled": false,
+  "resize_enabled": false,
+  "resize_mode": "percentage",
+  "resize_percentage": 100,
+  "resize_width": 0,
+  "resize_height": 0,
+  "resize_keep_aspect": true,
+  "brightness_enabled": false,
+  "brightness_factor": 1.15,
+  "contrast_enabled": false,
+  "contrast_factor": 1,
+  "sharpness_enabled": false,
+  "sharpness_factor": 1,
+  "transform_order": [
+    "flip",
+    "rotate",
+    "crop",
+    "resize",
+    "brightness",
+    "contrast",
+    "sharpness"
+  ],
+  "output_format": "webp",
+  "output_quality": 90
+}

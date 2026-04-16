@@ -28,10 +28,132 @@ body {
     user-select: none;
 }
 
-.app {
-    max-width: 700px;
+.app-container {
+    display: flex;
+    gap: 20px;
+    max-width: 1100px;
     margin: 0 auto;
     padding: 16px 20px;
+}
+
+.sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 16px;
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar-section {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+}
+
+.sidebar-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    display: block;
+}
+
+.presets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.preset-item {
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.preset-item:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.btn-del-preset {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+}
+
+.preset-item:hover .btn-del-preset {
+    color: white;
+}
+
+.btn-add-preset {
+    width: 100%;
+    padding: 8px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-add-preset:hover {
+    background: var(--accent-hover);
+}
+
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.btn-preset-action {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.15s;
+}
+
+.btn-preset-action:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 /* Header */
@@ -100,6 +222,12 @@ body {
 
 .dropdown-menu button + button {
     border-top: 1px solid var(--border);
+}
+
+.menu-separator {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 8px;
 }
 
 .btn-icon {
@@ -385,15 +513,81 @@ body {
     background: var(--bg);
 }
 
-/* Status message */
-.status-msg {
-    text-align: center;
-    font-size: 13px;
-    padding: 8px 0;
-    min-height: 30px;
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    max-width: 380px;
 }
-.status-msg.success { color: var(--success); font-weight: 500; }
-.status-msg.error { color: var(--danger); }
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card);
+    border-radius: 10px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    font-size: 13px;
+    line-height: 1.5;
+    pointer-events: auto;
+    transform: translateX(120%);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    border-left: 4px solid var(--accent);
+}
+
+.toast-visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast-exit {
+    transform: translateX(120%);
+    opacity: 0;
+}
+
+.toast-content { flex: 1; }
+
+.toast-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0 2px;
+    line-height: 1;
+}
+
+.toast-close:hover { color: var(--text); }
+
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: var(--accent);
+    opacity: 0.4;
+    transition: width 0.1s linear;
+}
+
+.toast-success { border-left-color: var(--success); }
+.toast-error { border-left-color: var(--danger); }
+.toast-info { border-left-color: var(--accent); }
+.toast-warning { border-left-color: #ffc107; }
+
+.toast-success .toast-progress { background: var(--success); }
+.toast-error .toast-progress { background: var(--danger); }
+.toast-info .toast-progress { background: var(--accent); }
+.toast-warning .toast-progress { background: #ffc107; }
 
 /* Update banner */
 .update-banner {
@@ -532,4 +726,90 @@ body {
     font-size: 12px;
     color: var(--text-secondary);
     font-style: italic;
+}
+
+/* Preview Navigation */
+.preview-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.btn-nav {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--text);
+    transition: all 0.15s;
+    box-shadow: var(--shadow);
+}
+
+.btn-nav:hover {
+    background: var(--bg);
+    border-color: #ccc;
+}
+
+.nav-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-family: inherit;
+}
+
+/* Save preset modal */
+.modal-heading {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text);
+}
+
+.save-preset-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    margin-bottom: 16px;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.save-preset-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.btn-cancel {
+    padding: 8px 20px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.btn-cancel:hover {
+    background: var(--border);
 }

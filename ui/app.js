@@ -87,6 +87,7 @@ const TRANSFORMS = {
 let config = {};
 let polling = null;
 let previewTimeout = null;
+let previewIndex = 0;
 
 // Wait for pywebview API
 window.addEventListener("pywebviewready", init);
@@ -95,6 +96,7 @@ async function init() {
   config = await pywebview.api.get_config();
   renderConfig();
   refreshFileCount();
+  renderPresets();
 
   // Execute preview separately to avoid blocking the main UI initialization
   updatePreview().catch((e) => console.error("Initial preview error:", e));
@@ -123,23 +125,75 @@ async function checkForUpdates() {
 }
 
 async function updatePreview() {
-  if (!config.input_dir) return;
+  if (!config.input_dir || config.input_dir === "input_files") {
+    document.getElementById("preview-section").style.display = "none";
+    document.getElementById("preview-nav").style.display = "none";
+    return;
+  }
 
   try {
-    const res = await pywebview.api.get_preview(config);
+    const res = await pywebview.api.get_preview(config, null, previewIndex);
     if (res.error) {
       document.getElementById("preview-section").style.display = "none";
+      document.getElementById("preview-nav").style.display = "none";
       return;
     }
 
     document.getElementById("preview-section").style.display = "flex";
+    document.getElementById("preview-nav").style.display = "flex";
     document.getElementById("preview-orig").src = res.original;
     document.getElementById("preview-res").src = res.preview;
     document.getElementById("preview-info").textContent =
       `Imagen: ${res.filename}`;
+    document.getElementById("preview-index-text").textContent =
+      `Imagen ${res.index + 1} de ${res.total}`;
   } catch (e) {
     console.error("Preview error:", e);
     document.getElementById("preview-section").style.display = "none";
+    document.getElementById("preview-nav").style.display = "none";
+  }
+}
+
+async function renderPresets() {
+  const list = document.getElementById("presets-list");
+  list.innerHTML = "";
+
+  try {
+    const presets = await pywebview.api.list_presets();
+    for (const name of presets) {
+      const item = document.createElement("div");
+      item.className = "preset-item";
+      item.innerHTML = `
+                <span class="preset-name">${name}</span>
+                <button class="btn-del-preset" title="Eliminar preset">×</button>
+            `;
+
+      item.addEventListener("click", async (e) => {
+        if (e.target.classList.contains("btn-del-preset")) {
+          const result = await pywebview.api.delete_preset(name);
+          if (result.success) {
+            renderPresets();
+            toast.show("Preset eliminado", "success");
+          } else {
+            toast.show(`Error: ${result.error}`, "error");
+          }
+        } else {
+          const result = await pywebview.api.load_named_preset(name);
+          if (result.error) {
+            toast.show(`Error al cargar preset: ${result.error}`, "error");
+          } else {
+            config = result;
+            renderConfig();
+            debouncedPreview();
+            toast.show(`Preset '${name}' aplicado`, "success");
+          }
+        }
+      });
+
+      list.appendChild(item);
+    }
+  } catch (e) {
+    console.error("Presets render error:", e);
   }
 }
 
@@ -153,7 +207,9 @@ function renderConfig() {
     config.input_dir || "input_files";
   document.getElementById("output-dir").value =
     config.output_dir || "output_files";
-  document.getElementById("webp-quality").value = config.webp_quality || 90;
+  document.getElementById("output-format").value =
+    config.output_format || "webp";
+  document.getElementById("output-quality").value = config.output_quality || 90;
   renderTransforms();
 }
 
@@ -297,8 +353,14 @@ async function refreshFileCount() {
 }
 
 // Quality input
-document.getElementById("webp-quality").addEventListener("change", (e) => {
-  config.webp_quality = Number(e.target.value);
+document.getElementById("output-quality").addEventListener("change", (e) => {
+  config.output_quality = Number(e.target.value);
+  saveConfig();
+});
+
+// Format input
+document.getElementById("output-format").addEventListener("change", (e) => {
+  config.output_format = e.target.value;
   saveConfig();
 });
 
@@ -308,7 +370,9 @@ document.getElementById("btn-input-dir").addEventListener("click", async () => {
   if (dir) {
     document.getElementById("input-dir").value = dir;
     config.input_dir = dir;
+    previewIndex = 0;
     refreshFileCount();
+    updatePreview();
   }
 });
 
@@ -326,11 +390,11 @@ document
 document.getElementById("btn-process").addEventListener("click", async () => {
   const btn = document.getElementById("btn-process");
   btn.disabled = true;
-  setStatus("");
+  toast.clearAll();
 
   const result = await pywebview.api.process_images();
   if (result.error) {
-    setStatus(result.error, "error");
+    toast.show(result.error, "error");
     btn.disabled = false;
     return;
   }
@@ -355,14 +419,14 @@ function pollProgress() {
       document.getElementById("progress-bar").style.width = "100%";
 
       if (p.errors.length > 0) {
-        setStatus(
+        toast.show(
           `Completado con ${p.errors.length} error${p.errors.length > 1 ? "es" : ""}. ${p.current - p.errors.length}/${p.total} procesadas.`,
           "error",
         );
       } else if (p.total === 0) {
-        setStatus("No se encontraron imágenes para procesar.", "error");
+        toast.show("No se encontraron imágenes para procesar.", "error");
       } else {
-        setStatus(
+        toast.show(
           `${p.total} imagen${p.total !== 1 ? "es" : ""} procesada${p.total !== 1 ? "s" : ""} correctamente.`,
           "success",
         );
@@ -432,10 +496,12 @@ document
           `Nueva version <strong>${result.latest_version}</strong> disponible.<br><a href="${result.download_url || result.release_url}" target="_blank" style="color:var(--accent)">Descargar</a>`,
         );
       } else {
-        showModal("Ya tienes la ultima version.");
+        document.getElementById("modal-overlay").style.display = "none";
+        toast.show("Ya tienes la ultima version.", "info");
       }
     } catch (e) {
-      showModal("No se pudo verificar actualizaciones.");
+      document.getElementById("modal-overlay").style.display = "none";
+      toast.show("No se pudo verificar actualizaciones.", "error");
     }
   });
 
@@ -457,11 +523,83 @@ document.getElementById("btn-reset").addEventListener("click", async () => {
   config = await pywebview.api.reset_config();
   renderConfig();
   refreshFileCount();
-  setStatus("Configuración restablecida", "success");
+  previewIndex = 0;
+  updatePreview();
+  toast.show("Configuración restablecida", "success");
 });
 
-function setStatus(msg, type) {
-  const el = document.getElementById("status-msg");
-  el.textContent = msg;
-  el.className = "status-msg" + (type ? ` ${type}` : "");
-}
+// Nueva Receta button - opens save preset modal
+document.getElementById("btn-add-preset").addEventListener("click", () => {
+  const overlay = document.getElementById("save-preset-overlay");
+  const input = document.getElementById("save-preset-name");
+  input.value = "";
+  overlay.style.display = "flex";
+  input.focus();
+});
+
+document.getElementById("save-preset-cancel").addEventListener("click", () => {
+  document.getElementById("save-preset-overlay").style.display = "none";
+});
+
+document
+  .getElementById("save-preset-overlay")
+  .addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) {
+      document.getElementById("save-preset-overlay").style.display = "none";
+    }
+  });
+
+document
+  .getElementById("save-preset-confirm")
+  .addEventListener("click", async () => {
+    const name = document.getElementById("save-preset-name").value.trim();
+    if (!name) return;
+    document.getElementById("save-preset-overlay").style.display = "none";
+    const result = await pywebview.api.save_named_preset(name, config);
+    if (result.error) {
+      toast.show(`Error al guardar receta: ${result.error}`, "error");
+    } else {
+      renderPresets();
+      toast.show(`Receta '${name}' guardada`, "success");
+    }
+  });
+
+document.getElementById("save-preset-name").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    document.getElementById("save-preset-confirm").click();
+  }
+});
+
+// Presets - Export (save to file)
+document
+  .getElementById("menu-save-preset")
+  .addEventListener("click", async () => {
+    dropdownMenu.classList.remove("open");
+    const result = await pywebview.api.save_preset(config);
+    if (result.error) {
+      toast.show(`Error al guardar preset: ${result.error}`, "error");
+    } else if (result.canceled) {
+      // User canceled
+    } else {
+      toast.show("Preset guardado exitosamente", "success");
+    }
+  });
+
+// Presets - Import (load from file)
+document
+  .getElementById("menu-load-preset")
+  .addEventListener("click", async () => {
+    dropdownMenu.classList.remove("open");
+    const path = await pywebview.api.select_preset_file();
+    if (path) {
+      const result = await pywebview.api.load_preset(path);
+      if (result.error) {
+        toast.show(`Error al cargar preset: ${result.error}`, "error");
+      } else {
+        config = result;
+        renderConfig();
+        debouncedPreview();
+        toast.show("Preset cargado", "success");
+      }
+    }
+  });

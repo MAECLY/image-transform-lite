@@ -44,7 +44,8 @@ class AppConfig:
     transform_order: list = field(default_factory=lambda: list(DEFAULT_ORDER))
 
     # Output
-    webp_quality: int = 90
+    output_format: str = "webp"  # "webp" | "jpeg" | "png" | "tiff"
+    output_quality: int = 90
 
     # Directories
     input_dir: str = "input_files"
@@ -93,6 +94,17 @@ class AppConfig:
         if p.is_absolute():
             return p
         return _app_base_dir() / p
+
+    @classmethod
+    def get_presets_dir(cls) -> Path:
+        if getattr(sys, "frozen", False):
+            config_dir = Path.home() / "Library" / "Application Support" / "ImageTransformLite"
+        else:
+            config_dir = _app_base_dir()
+        
+        presets_dir = config_dir / "presets"
+        presets_dir.mkdir(parents=True, exist_ok=True)
+        return presets_dir
 
 
 def _app_base_dir() -> Path:

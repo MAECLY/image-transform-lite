@@ -90,7 +90,35 @@ def get_preview_base64(image_path: Path, config: AppConfig) -> str:
     return f"data:image/webp;base64,{img_str}"
 
 
-def save_webp(img: Image.Image, path: Path, quality: int = 90) -> None:
+def save_image(img: Image.Image, path: Path, fmt: str, quality: int = 90) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Map format to Pillow format names
+    format_map = {
+        "webp": "WEBP",
+        "jpeg": "JPEG",
+        "png": "PNG",
+        "tiff": "TIFF"
+    }
+    pillow_fmt = format_map.get(fmt.lower(), "WEBP")
+    
+    if pillow_fmt == "JPEG":
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+    elif pillow_fmt == "WEBP":
+        if img.mode == "RGBA":
+            img = img.convert("RGB")
+        elif img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+    elif pillow_fmt not in ("PNG", "TIFF"):
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+
+    # Save using the determined format
+    img.save(str(path), format=pillow_fmt, quality=quality, method=6 if pillow_fmt == "WEBP" else None)
+
+
+# Removed save_webp as it's replaced by save_image
     path.parent.mkdir(parents=True, exist_ok=True)
     if img.mode == "RGBA":
         img = img.convert("RGB")
@@ -137,14 +165,24 @@ class BatchProcessor:
 
         for i, file_path in enumerate(files):
             rel = file_path.relative_to(input_dir)
-            out_path = output_dir / rel.with_suffix(".webp")
+            
+            # Determine output filename based on chosen format
+            fmt = self.config.output_format.lower()
+            ext = {
+                "webp": ".webp",
+                "jpeg": ".jpg",
+                "png": ".png",
+                "tiff": ".tiff"
+            }.get(fmt, ".webp")
+            
+            out_path = output_dir / rel.with_suffix(ext)
             self.current = i + 1
             self.current_file = str(rel)
 
             try:
                 img = load_image(file_path)
                 img = apply_transforms(img, self.config)
-                save_webp(img, out_path, self.config.webp_quality)
+                save_image(img, out_path, self.config.output_format, self.config.output_quality)
             except Exception as e:
                 log.error("Error processing %s: %s", rel, e)
                 self.errors.append({"file": str(rel), "error": str(e)})
