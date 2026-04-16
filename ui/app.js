@@ -1,37 +1,37 @@
 // Transform definitions
 const TRANSFORMS = {
-    flip: {
-        title: "Flip",
-        desc: "Voltea la imagen horizontal o verticalmente",
-        enabledKey: "flip_enabled",
-        params: (cfg) => `
+  flip: {
+    title: "Flip",
+    desc: "Voltea la imagen horizontal o verticalmente",
+    enabledKey: "flip_enabled",
+    params: (cfg) => `
             <label>Dirección:</label>
             <select data-key="flip_direction">
                 <option value="horizontal" ${cfg.flip_direction === "horizontal" ? "selected" : ""}>Horizontal</option>
                 <option value="vertical" ${cfg.flip_direction === "vertical" ? "selected" : ""}>Vertical</option>
             </select>
         `,
-    },
-    rotate: {
-        title: "Rotate",
-        desc: "Rota la imagen los grados indicados",
-        enabledKey: "rotate_enabled",
-        params: (cfg) => `
+  },
+  rotate: {
+    title: "Rotate",
+    desc: "Rota la imagen los grados indicados",
+    enabledKey: "rotate_enabled",
+    params: (cfg) => `
             <label>Grados:</label>
             <input type="number" data-key="rotate_degrees" value="${cfg.rotate_degrees}" min="-360" max="360" style="width:60px">
         `,
-    },
-    crop: {
-        title: "Safe Square Crop",
-        desc: "Recorte cuadrado que elimina esquinas transparentes",
-        enabledKey: "crop_enabled",
-        params: () => "",
-    },
-    resize: {
-        title: "Resize",
-        desc: "Redimensiona la imagen por porcentaje o dimensiones",
-        enabledKey: "resize_enabled",
-        params: (cfg) => `
+  },
+  crop: {
+    title: "Safe Square Crop",
+    desc: "Recorte cuadrado que elimina esquinas transparentes",
+    enabledKey: "crop_enabled",
+    params: () => "",
+  },
+  resize: {
+    title: "Resize",
+    desc: "Redimensiona la imagen por porcentaje o dimensiones",
+    enabledKey: "resize_enabled",
+    params: (cfg) => `
             <label>Modo:</label>
             <select data-key="resize_mode" class="resize-mode-select">
                 <option value="percentage" ${cfg.resize_mode === "percentage" ? "selected" : ""}>Porcentaje</option>
@@ -51,96 +51,128 @@ const TRANSFORMS = {
                 </label>
             </span>
         `,
-    },
-    brightness: {
-        title: "Brightness",
-        desc: "Ajusta el brillo de la imagen",
-        enabledKey: "brightness_enabled",
-        params: (cfg) => `
+  },
+  brightness: {
+    title: "Brightness",
+    desc: "Ajusta el brillo de la imagen",
+    enabledKey: "brightness_enabled",
+    params: (cfg) => `
             <label>Factor:</label>
             <input type="range" data-key="brightness_factor" min="0.5" max="2.0" step="0.05" value="${cfg.brightness_factor}">
             <span class="range-val">${Number(cfg.brightness_factor).toFixed(2)}</span>
         `,
-    },
-    contrast: {
-        title: "Contrast",
-        desc: "Ajusta el contraste de la imagen",
-        enabledKey: "contrast_enabled",
-        params: (cfg) => `
+  },
+  contrast: {
+    title: "Contrast",
+    desc: "Ajusta el contraste de la imagen",
+    enabledKey: "contrast_enabled",
+    params: (cfg) => `
             <label>Factor:</label>
             <input type="range" data-key="contrast_factor" min="0.5" max="2.0" step="0.05" value="${cfg.contrast_factor}">
             <span class="range-val">${Number(cfg.contrast_factor).toFixed(2)}</span>
         `,
-    },
-    sharpness: {
-        title: "Sharpness",
-        desc: "Ajusta la nitidez de la imagen",
-        enabledKey: "sharpness_enabled",
-        params: (cfg) => `
+  },
+  sharpness: {
+    title: "Sharpness",
+    desc: "Ajusta la nitidez de la imagen",
+    enabledKey: "sharpness_enabled",
+    params: (cfg) => `
             <label>Factor:</label>
             <input type="range" data-key="sharpness_factor" min="0.0" max="3.0" step="0.05" value="${cfg.sharpness_factor}">
             <span class="range-val">${Number(cfg.sharpness_factor).toFixed(2)}</span>
         `,
-    },
+  },
 };
 
 let config = {};
 let polling = null;
+let previewTimeout = null;
 
 // Wait for pywebview API
 window.addEventListener("pywebviewready", init);
 
 async function init() {
-    config = await pywebview.api.get_config();
-    renderConfig();
-    refreshFileCount();
+  config = await pywebview.api.get_config();
+  renderConfig();
+  refreshFileCount();
 
-    // Show version
-    try {
-        const version = await pywebview.api.get_version();
-        document.getElementById("app-version").textContent = "v" + version;
-    } catch (e) {}
+  // Execute preview separately to avoid blocking the main UI initialization
+  updatePreview().catch((e) => console.error("Initial preview error:", e));
 
-    // Check for updates after UI is ready
-    checkForUpdates();
+  // Show version
+  try {
+    const version = await pywebview.api.get_version();
+    document.getElementById("app-version").textContent = "v" + version;
+  } catch (e) {}
+
+  // Check for updates after UI is ready
+  checkForUpdates();
 }
 
 async function checkForUpdates() {
-    try {
-        const result = await pywebview.api.check_for_updates();
-        if (result && result.update_available) {
-            document.getElementById("update-msg").textContent =
-                `Nueva version ${result.latest_version} disponible.`;
-            const link = document.getElementById("update-link");
-            link.href = result.download_url || result.release_url;
-            document.getElementById("update-banner").style.display = "flex";
-        }
-    } catch (e) {}
+  try {
+    const result = await pywebview.api.check_for_updates();
+    if (result && result.update_available) {
+      document.getElementById("update-msg").textContent =
+        `Nueva version ${result.latest_version} disponible.`;
+      const link = document.getElementById("update-link");
+      link.href = result.download_url || result.release_url;
+      document.getElementById("update-banner").style.display = "flex";
+    }
+  } catch (e) {}
+}
+
+async function updatePreview() {
+  if (!config.input_dir) return;
+
+  try {
+    const res = await pywebview.api.get_preview(config);
+    if (res.error) {
+      document.getElementById("preview-section").style.display = "none";
+      return;
+    }
+
+    document.getElementById("preview-section").style.display = "flex";
+    document.getElementById("preview-orig").src = res.original;
+    document.getElementById("preview-res").src = res.preview;
+    document.getElementById("preview-info").textContent =
+      `Imagen: ${res.filename}`;
+  } catch (e) {
+    console.error("Preview error:", e);
+    document.getElementById("preview-section").style.display = "none";
+  }
+}
+
+function debouncedPreview() {
+  if (previewTimeout) clearTimeout(previewTimeout);
+  previewTimeout = setTimeout(updatePreview, 150);
 }
 
 function renderConfig() {
-    document.getElementById("input-dir").value = config.input_dir || "input_files";
-    document.getElementById("output-dir").value = config.output_dir || "output_files";
-    document.getElementById("webp-quality").value = config.webp_quality || 90;
-    renderTransforms();
+  document.getElementById("input-dir").value =
+    config.input_dir || "input_files";
+  document.getElementById("output-dir").value =
+    config.output_dir || "output_files";
+  document.getElementById("webp-quality").value = config.webp_quality || 90;
+  renderTransforms();
 }
 
 function renderTransforms() {
-    const list = document.getElementById("transforms-list");
-    list.innerHTML = "";
+  const list = document.getElementById("transforms-list");
+  list.innerHTML = "";
 
-    const order = config.transform_order || Object.keys(TRANSFORMS);
+  const order = config.transform_order || Object.keys(TRANSFORMS);
 
-    for (const key of order) {
-        const t = TRANSFORMS[key];
-        if (!t) continue;
-        const enabled = config[t.enabledKey];
+  for (const key of order) {
+    const t = TRANSFORMS[key];
+    if (!t) continue;
+    const enabled = config[t.enabledKey];
 
-        const card = document.createElement("div");
-        card.className = `transform-card ${enabled ? "" : "disabled"}`;
-        card.dataset.key = key;
+    const card = document.createElement("div");
+    card.className = `transform-card ${enabled ? "" : "disabled"}`;
+    card.dataset.key = key;
 
-        card.innerHTML = `
+    card.innerHTML = `
             <div class="card-header">
                 <span class="drag-handle">&#10303;</span>
                 <input type="checkbox" data-enabled-key="${t.enabledKey}" ${enabled ? "checked" : ""}>
@@ -150,257 +182,286 @@ function renderTransforms() {
             ${t.desc ? `<div class="card-desc">${t.desc}</div>` : ""}
         `;
 
-        list.appendChild(card);
-    }
+    list.appendChild(card);
+  }
 
-    // Init Sortable
-    if (window._sortable) window._sortable.destroy();
-    window._sortable = new Sortable(list, {
-        handle: ".drag-handle",
-        animation: 150,
-        ghostClass: "sortable-ghost",
-        chosenClass: "sortable-chosen",
-        onEnd: onReorder,
-    });
+  // Init Sortable
+  if (window._sortable) window._sortable.destroy();
+  window._sortable = new Sortable(list, {
+    handle: ".drag-handle",
+    animation: 150,
+    ghostClass: "sortable-ghost",
+    chosenClass: "sortable-chosen",
+    onEnd: onReorder,
+  });
 
-    bindCardEvents();
+  bindCardEvents();
 }
 
 function bindCardEvents() {
-    // Checkboxes
-    document.querySelectorAll(".transform-card input[type='checkbox'][data-enabled-key]").forEach((cb) => {
-        cb.addEventListener("change", () => {
-            config[cb.dataset.enabledKey] = cb.checked;
-            const card = cb.closest(".transform-card");
-            card.classList.toggle("disabled", !cb.checked);
-            saveConfig();
-        });
+  // Checkboxes
+  document
+    .querySelectorAll(
+      ".transform-card input[type='checkbox'][data-enabled-key]",
+    )
+    .forEach((cb) => {
+      cb.addEventListener("change", () => {
+        config[cb.dataset.enabledKey] = cb.checked;
+        const card = cb.closest(".transform-card");
+        card.classList.toggle("disabled", !cb.checked);
+        saveConfig();
+        debouncedPreview();
+      });
     });
 
-    // Selects
-    document.querySelectorAll(".card-params select[data-key]").forEach((sel) => {
-        sel.addEventListener("change", () => {
-            const key = sel.dataset.key;
-            config[key] = sel.value;
-            // Toggle resize mode fields
-            if (key === "resize_mode") {
-                const card = sel.closest(".transform-card");
-                const pct = card.querySelector(".resize-percentage-fields");
-                const dim = card.querySelector(".resize-dimensions-fields");
-                if (pct) pct.style.display = sel.value === "percentage" ? "contents" : "none";
-                if (dim) dim.style.display = sel.value === "dimensions" ? "contents" : "none";
-            }
-            saveConfig();
-        });
+  // Selects
+  document.querySelectorAll(".card-params select[data-key]").forEach((sel) => {
+    sel.addEventListener("change", () => {
+      const key = sel.dataset.key;
+      config[key] = sel.value;
+      // Toggle resize mode fields
+      if (key === "resize_mode") {
+        const card = sel.closest(".transform-card");
+        const pct = card.querySelector(".resize-percentage-fields");
+        const dim = card.querySelector(".resize-dimensions-fields");
+        if (pct)
+          pct.style.display = sel.value === "percentage" ? "contents" : "none";
+        if (dim)
+          dim.style.display = sel.value === "dimensions" ? "contents" : "none";
+      }
+      saveConfig();
+      debouncedPreview();
+    });
+  });
+
+  // Number inputs
+  document
+    .querySelectorAll(".card-params input[type='number'][data-key]")
+    .forEach((inp) => {
+      inp.addEventListener("change", () => {
+        config[inp.dataset.key] = Number(inp.value);
+        saveConfig();
+        debouncedPreview();
+      });
     });
 
-    // Number inputs
-    document.querySelectorAll(".card-params input[type='number'][data-key]").forEach((inp) => {
-        inp.addEventListener("change", () => {
-            config[inp.dataset.key] = Number(inp.value);
-            saveConfig();
-        });
+  // Range inputs
+  document
+    .querySelectorAll(".card-params input[type='range'][data-key]")
+    .forEach((inp) => {
+      inp.addEventListener("input", () => {
+        const val = Number(inp.value);
+        config[inp.dataset.key] = val;
+        const span = inp.nextElementSibling;
+        if (span && span.classList.contains("range-val")) {
+          span.textContent = val.toFixed(2);
+        }
+        debouncedPreview();
+      });
+      inp.addEventListener("change", () => {
+        saveConfig();
+      });
     });
 
-    // Range inputs
-    document.querySelectorAll(".card-params input[type='range'][data-key]").forEach((inp) => {
-        inp.addEventListener("input", () => {
-            const val = Number(inp.value);
-            config[inp.dataset.key] = val;
-            const span = inp.nextElementSibling;
-            if (span && span.classList.contains("range-val")) {
-                span.textContent = val.toFixed(2);
-            }
-        });
-        inp.addEventListener("change", () => {
-            saveConfig();
-        });
-    });
-
-    // Checkbox in params (keep aspect)
-    document.querySelectorAll(".card-params input[type='checkbox'][data-key]").forEach((cb) => {
-        cb.addEventListener("change", () => {
-            config[cb.dataset.key] = cb.checked;
-            saveConfig();
-        });
+  // Checkbox in params (keep aspect)
+  document
+    .querySelectorAll(".card-params input[type='checkbox'][data-key]")
+    .forEach((cb) => {
+      cb.addEventListener("change", () => {
+        config[cb.dataset.key] = cb.checked;
+        saveConfig();
+        debouncedPreview();
+      });
     });
 }
 
 function onReorder() {
-    const cards = document.querySelectorAll("#transforms-list .transform-card");
-    config.transform_order = Array.from(cards).map((c) => c.dataset.key);
-    saveConfig();
+  const cards = document.querySelectorAll("#transforms-list .transform-card");
+  config.transform_order = Array.from(cards).map((c) => c.dataset.key);
+  saveConfig();
+  debouncedPreview();
 }
 
 async function saveConfig() {
-    config = await pywebview.api.save_config(config);
+  config = await pywebview.api.save_config(config);
 }
 
 async function refreshFileCount() {
-    const data = await pywebview.api.get_input_files();
-    const el = document.getElementById("file-count");
-    if (data.count === 0) {
-        el.textContent = "No se encontraron imágenes en la carpeta de input";
-    } else {
-        el.textContent = `${data.count} imagen${data.count !== 1 ? "es" : ""} encontrada${data.count !== 1 ? "s" : ""}`;
-    }
+  const data = await pywebview.api.get_input_files();
+  const el = document.getElementById("file-count");
+  if (data.count === 0) {
+    el.textContent = "No se encontraron imágenes en la carpeta de input";
+  } else {
+    el.textContent = `${data.count} imagen${data.count !== 1 ? "es" : ""} encontrada${data.count !== 1 ? "s" : ""}`;
+  }
 }
 
 // Quality input
 document.getElementById("webp-quality").addEventListener("change", (e) => {
-    config.webp_quality = Number(e.target.value);
-    saveConfig();
+  config.webp_quality = Number(e.target.value);
+  saveConfig();
 });
 
 // Browse buttons
 document.getElementById("btn-input-dir").addEventListener("click", async () => {
-    const dir = await pywebview.api.select_input_directory();
-    if (dir) {
-        document.getElementById("input-dir").value = dir;
-        config.input_dir = dir;
-        refreshFileCount();
-    }
+  const dir = await pywebview.api.select_input_directory();
+  if (dir) {
+    document.getElementById("input-dir").value = dir;
+    config.input_dir = dir;
+    refreshFileCount();
+  }
 });
 
-document.getElementById("btn-output-dir").addEventListener("click", async () => {
+document
+  .getElementById("btn-output-dir")
+  .addEventListener("click", async () => {
     const dir = await pywebview.api.select_output_directory();
     if (dir) {
-        document.getElementById("output-dir").value = dir;
-        config.output_dir = dir;
+      document.getElementById("output-dir").value = dir;
+      config.output_dir = dir;
     }
-});
+  });
 
 // Process button
 document.getElementById("btn-process").addEventListener("click", async () => {
-    const btn = document.getElementById("btn-process");
-    btn.disabled = true;
-    setStatus("");
+  const btn = document.getElementById("btn-process");
+  btn.disabled = true;
+  setStatus("");
 
-    const result = await pywebview.api.process_images();
-    if (result.error) {
-        setStatus(result.error, "error");
-        btn.disabled = false;
-        return;
-    }
+  const result = await pywebview.api.process_images();
+  if (result.error) {
+    setStatus(result.error, "error");
+    btn.disabled = false;
+    return;
+  }
 
-    document.getElementById("progress-section").style.display = "";
-    pollProgress();
+  document.getElementById("progress-section").style.display = "";
+  pollProgress();
 });
 
 function pollProgress() {
-    if (polling) clearInterval(polling);
-    polling = setInterval(async () => {
-        const p = await pywebview.api.get_progress();
-        const pct = p.total > 0 ? (p.current / p.total) * 100 : 0;
-        document.getElementById("progress-bar").style.width = pct + "%";
-        document.getElementById("progress-text").textContent =
-            `${p.current}/${p.total} — ${p.current_file || "..."}`;
+  if (polling) clearInterval(polling);
+  polling = setInterval(async () => {
+    const p = await pywebview.api.get_progress();
+    const pct = p.total > 0 ? (p.current / p.total) * 100 : 0;
+    document.getElementById("progress-bar").style.width = pct + "%";
+    document.getElementById("progress-text").textContent =
+      `${p.current}/${p.total} — ${p.current_file || "..."}`;
 
-        if (p.done) {
-            clearInterval(polling);
-            polling = null;
-            document.getElementById("btn-process").disabled = false;
-            document.getElementById("progress-bar").style.width = "100%";
+    if (p.done) {
+      clearInterval(polling);
+      polling = null;
+      document.getElementById("btn-process").disabled = false;
+      document.getElementById("progress-bar").style.width = "100%";
 
-            if (p.errors.length > 0) {
-                setStatus(
-                    `Completado con ${p.errors.length} error${p.errors.length > 1 ? "es" : ""}. ${p.current - p.errors.length}/${p.total} procesadas.`,
-                    "error"
-                );
-            } else if (p.total === 0) {
-                setStatus("No se encontraron imágenes para procesar.", "error");
-            } else {
-                setStatus(`${p.total} imagen${p.total !== 1 ? "es" : ""} procesada${p.total !== 1 ? "s" : ""} correctamente.`, "success");
-            }
-        }
-    }, 200);
+      if (p.errors.length > 0) {
+        setStatus(
+          `Completado con ${p.errors.length} error${p.errors.length > 1 ? "es" : ""}. ${p.current - p.errors.length}/${p.total} procesadas.`,
+          "error",
+        );
+      } else if (p.total === 0) {
+        setStatus("No se encontraron imágenes para procesar.", "error");
+      } else {
+        setStatus(
+          `${p.total} imagen${p.total !== 1 ? "es" : ""} procesada${p.total !== 1 ? "s" : ""} correctamente.`,
+          "success",
+        );
+      }
+    }
+  }, 200);
 }
 
 // Open output
 document.getElementById("btn-open-output").addEventListener("click", () => {
-    pywebview.api.open_output_directory();
+  pywebview.api.open_output_directory();
 });
 
 // Dismiss update banner
 document.getElementById("update-dismiss").addEventListener("click", () => {
-    document.getElementById("update-banner").style.display = "none";
+  document.getElementById("update-banner").style.display = "none";
 });
 
 // Dropdown menu
 const dropdownMenu = document.getElementById("dropdown-menu");
 
 document.getElementById("btn-menu").addEventListener("click", (e) => {
-    e.stopPropagation();
-    dropdownMenu.classList.toggle("open");
+  e.stopPropagation();
+  dropdownMenu.classList.toggle("open");
 });
 
 document.addEventListener("click", () => {
-    dropdownMenu.classList.remove("open");
+  dropdownMenu.classList.remove("open");
 });
 
 // Prevent dropdown items from bubbling to document (which closes menu before handler runs)
 dropdownMenu.addEventListener("click", (e) => {
-    e.stopPropagation();
+  e.stopPropagation();
 });
 
 // Modal helper
 function showModal(html) {
-    document.getElementById("modal-body").innerHTML = html;
-    document.getElementById("modal-overlay").style.display = "flex";
+  document.getElementById("modal-body").innerHTML = html;
+  document.getElementById("modal-overlay").style.display = "flex";
 }
 
 document.getElementById("modal-close").addEventListener("click", () => {
-    document.getElementById("modal-overlay").style.display = "none";
+  document.getElementById("modal-overlay").style.display = "none";
 });
 
 document.getElementById("modal-overlay").addEventListener("click", (e) => {
-    if (e.target === e.currentTarget) {
-        document.getElementById("modal-overlay").style.display = "none";
-    }
+  if (e.target === e.currentTarget) {
+    document.getElementById("modal-overlay").style.display = "none";
+  }
 });
 
 // Manual check for updates
-document.getElementById("menu-check-updates").addEventListener("click", async () => {
+document
+  .getElementById("menu-check-updates")
+  .addEventListener("click", async () => {
     dropdownMenu.classList.remove("open");
     showModal("Buscando actualizaciones...");
     try {
-        const result = await pywebview.api.check_for_updates();
-        if (result && result.update_available) {
-            document.getElementById("update-msg").textContent =
-                `Nueva version ${result.latest_version} disponible.`;
-            const link = document.getElementById("update-link");
-            link.href = result.download_url || result.release_url;
-            document.getElementById("update-banner").style.display = "flex";
-            showModal(`Nueva version <strong>${result.latest_version}</strong> disponible.<br><a href="${result.download_url || result.release_url}" target="_blank" style="color:var(--accent)">Descargar</a>`);
-        } else {
-            showModal("Ya tienes la ultima version.");
-        }
+      const result = await pywebview.api.check_for_updates();
+      if (result && result.update_available) {
+        document.getElementById("update-msg").textContent =
+          `Nueva version ${result.latest_version} disponible.`;
+        const link = document.getElementById("update-link");
+        link.href = result.download_url || result.release_url;
+        document.getElementById("update-banner").style.display = "flex";
+        showModal(
+          `Nueva version <strong>${result.latest_version}</strong> disponible.<br><a href="${result.download_url || result.release_url}" target="_blank" style="color:var(--accent)">Descargar</a>`,
+        );
+      } else {
+        showModal("Ya tienes la ultima version.");
+      }
     } catch (e) {
-        showModal("No se pudo verificar actualizaciones.");
+      showModal("No se pudo verificar actualizaciones.");
     }
-});
+  });
 
 // About
 document.getElementById("menu-about").addEventListener("click", async () => {
-    dropdownMenu.classList.remove("open");
-    try {
-        const version = await pywebview.api.get_version();
-        showModal(`<strong>Image Transform Lite</strong><br>Version ${version}<br><br><span style="font-size:12px;color:var(--text-secondary)">macOS Apple Silicon</span>`);
-    } catch (e) {
-        showModal("<strong>Image Transform Lite</strong>");
-    }
+  dropdownMenu.classList.remove("open");
+  try {
+    const version = await pywebview.api.get_version();
+    showModal(
+      `<strong>Image Transform Lite</strong><br>Version ${version}<br><br><span style="font-size:12px;color:var(--text-secondary)">macOS Apple Silicon</span>`,
+    );
+  } catch (e) {
+    showModal("<strong>Image Transform Lite</strong>");
+  }
 });
 
 // Reset
 document.getElementById("btn-reset").addEventListener("click", async () => {
-    config = await pywebview.api.reset_config();
-    renderConfig();
-    refreshFileCount();
-    setStatus("Configuración restablecida", "success");
+  config = await pywebview.api.reset_config();
+  renderConfig();
+  refreshFileCount();
+  setStatus("Configuración restablecida", "success");
 });
 
 function setStatus(msg, type) {
-    const el = document.getElementById("status-msg");
-    el.textContent = msg;
-    el.className = "status-msg" + (type ? ` ${type}` : "");
+  const el = document.getElementById("status-msg");
+  el.textContent = msg;
+  el.className = "status-msg" + (type ? ` ${type}` : "");
 }

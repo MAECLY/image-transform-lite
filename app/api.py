@@ -1,4 +1,6 @@
 import subprocess
+import io
+import base64
 
 from app.config import AppConfig
 from app.processor import BatchProcessor, discover_images
@@ -44,6 +46,46 @@ class Api:
         if self._processor is None:
             return {"current": 0, "total": 0, "current_file": "", "done": True, "errors": []}
         return self._processor.progress()
+
+    def get_preview(self, config_dict: dict, image_path: str | None = None) -> dict:
+        try:
+            # Use the provided config or current app config
+            current_cfg = AppConfig.from_dict(config_dict)
+            
+            # If no image_path is provided, try to pick the first image from the input directory
+            input_dir = self.config.resolve_input_dir()
+            files = discover_images(input_dir)
+            
+            if image_path:
+                path = Path(image_path)
+            elif files:
+                path = files[0]
+            else:
+                return {"error": "No images found in input directory for preview"}
+                
+            if not path.exists():
+                return {"error": "Preview image file not found"}
+
+            from app.processor import get_preview_base64
+            preview_b64 = get_preview_base64(path, current_cfg)
+            
+            # Also return the original image for a B&A comparison
+            from app.processor import load_image
+            img_orig = load_image(path)
+            buf_orig = io.BytesIO()
+            # Simple conversion for original preview
+            if img_orig.mode not in ("RGB", "L"):
+                img_orig = img_orig.convert("RGB")
+            img_orig.save(buf_orig, format="WEBP", quality=80)
+            orig_b64 = base64.b64encode(buf_orig.getvalue()).decode()
+            
+            return {
+                "preview": preview_b64,
+                "original": f"data:image/webp;base64,{orig_b64}",
+                "filename": path.name
+            }
+        except Exception as e:
+            return {"error": str(e)}
 
     def select_input_directory(self) -> str | None:
         if self.window is None:

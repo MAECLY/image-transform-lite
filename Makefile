@@ -1,4 +1,4 @@
-PYTHON     := /opt/homebrew/opt/python@3.11/bin/python3.11
+PYTHON     := $(shell which python3.11 || which python3)
 VENV       := venv
 ACTIVATE   := source $(VENV)/bin/activate
 APP_NAME   := Image Transform Lite
@@ -19,13 +19,13 @@ install: venv ## Instala todas las dependencias
 	@echo "Dependencias instaladas"
 
 test: install ## Ejecuta los tests
-	@$(ACTIVATE) && python -m pytest tests/ -v
+	@$(ACTIVATE) && python3 -m pytest tests/ -v
 
 run: install ## Ejecuta la app en modo desarrollo
-	@$(ACTIVATE) && python -m app.main
+	@$(ACTIVATE) && python3 -m app.main
 
 run-debug: install ## Ejecuta la app en modo desarrollo con debug
-	@$(ACTIVATE) && python -m app.main --debug
+	@$(ACTIVATE) && python3 -m app.main --debug
 
 build: install ## Construye el .app bundle
 	@$(ACTIVATE) && pyinstaller build.spec --clean --noconfirm

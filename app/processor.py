@@ -1,5 +1,7 @@
 import logging
 import threading
+import base64
+import io
 from pathlib import Path
 
 from PIL import Image, ImageOps
@@ -69,6 +71,23 @@ def apply_transforms(img: Image.Image, config: AppConfig) -> Image.Image:
         elif name == "sharpness" and config.sharpness_enabled:
             img = adjust_sharpness(img, config.sharpness_factor)
     return img
+
+
+def get_preview_base64(image_path: Path, config: AppConfig) -> str:
+    """Processes a single image and returns it as a base64 encoded string."""
+    img = load_image(image_path)
+    img = apply_transforms(img, config)
+    
+    # Convert to RGB for consistent base64 WebP output
+    if img.mode == "RGBA":
+        img = img.convert("RGB")
+    elif img.mode not in ("RGB", "L"):
+        img = img.convert("RGB")
+        
+    buffered = io.BytesIO()
+    img.save(buffered, format="WEBP", quality=80) # Lower quality for faster preview
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    return f"data:image/webp;base64,{img_str}"
 
 
 def save_webp(img: Image.Image, path: Path, quality: int = 90) -> None:
