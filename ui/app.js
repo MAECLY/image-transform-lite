@@ -88,6 +88,7 @@ let config = {};
 let polling = null;
 let previewTimeout = null;
 let previewIndex = 0;
+let previewTotal = 0;
 
 // Wait for pywebview API
 window.addEventListener("pywebviewready", init);
@@ -143,10 +144,15 @@ async function updatePreview() {
     document.getElementById("preview-nav").style.display = "flex";
     document.getElementById("preview-orig").src = res.original;
     document.getElementById("preview-res").src = res.preview;
-    document.getElementById("preview-info").textContent =
-      `Imagen: ${res.filename}`;
+    const filenameEl = document.getElementById("preview-filename");
+    filenameEl.textContent = res.filename;
+    filenameEl.setAttribute("data-tooltip", res.filename);
+    filenameEl.classList.remove("expanded");
     document.getElementById("preview-index-text").textContent =
       `Imagen ${res.index + 1} de ${res.total}`;
+
+    previewIndex = res.index;
+    previewTotal = res.total;
   } catch (e) {
     console.error("Preview error:", e);
     document.getElementById("preview-section").style.display = "none";
@@ -445,23 +451,6 @@ document.getElementById("update-dismiss").addEventListener("click", () => {
   document.getElementById("update-banner").style.display = "none";
 });
 
-// Dropdown menu
-const dropdownMenu = document.getElementById("dropdown-menu");
-
-document.getElementById("btn-menu").addEventListener("click", (e) => {
-  e.stopPropagation();
-  dropdownMenu.classList.toggle("open");
-});
-
-document.addEventListener("click", () => {
-  dropdownMenu.classList.remove("open");
-});
-
-// Prevent dropdown items from bubbling to document (which closes menu before handler runs)
-dropdownMenu.addEventListener("click", (e) => {
-  e.stopPropagation();
-});
-
 // Modal helper
 function showModal(html) {
   document.getElementById("modal-body").innerHTML = html;
@@ -482,7 +471,6 @@ document.getElementById("modal-overlay").addEventListener("click", (e) => {
 document
   .getElementById("menu-check-updates")
   .addEventListener("click", async () => {
-    dropdownMenu.classList.remove("open");
     showModal("Buscando actualizaciones...");
     try {
       const result = await pywebview.api.check_for_updates();
@@ -507,7 +495,6 @@ document
 
 // About
 document.getElementById("menu-about").addEventListener("click", async () => {
-  dropdownMenu.classList.remove("open");
   try {
     const version = await pywebview.api.get_version();
     showModal(
@@ -574,7 +561,6 @@ document.getElementById("save-preset-name").addEventListener("keydown", (e) => {
 document
   .getElementById("menu-save-preset")
   .addEventListener("click", async () => {
-    dropdownMenu.classList.remove("open");
     const result = await pywebview.api.save_preset(config);
     if (result.error) {
       toast.show(`Error al guardar preset: ${result.error}`, "error");
@@ -589,7 +575,6 @@ document
 document
   .getElementById("menu-load-preset")
   .addEventListener("click", async () => {
-    dropdownMenu.classList.remove("open");
     const path = await pywebview.api.select_preset_file();
     if (path) {
       const result = await pywebview.api.load_preset(path);
@@ -603,3 +588,20 @@ document
       }
     }
   });
+
+document.getElementById("btn-prev-img").addEventListener("click", async () => {
+  if (previewTotal === 0) return;
+  previewIndex = (previewIndex - 1 + previewTotal) % previewTotal;
+  await updatePreview();
+});
+
+document.getElementById("btn-next-img").addEventListener("click", async () => {
+  if (previewTotal === 0) return;
+  previewIndex = (previewIndex + 1) % previewTotal;
+  await updatePreview();
+});
+
+document.getElementById("preview-filename").addEventListener("click", () => {
+  const el = document.getElementById("preview-filename");
+  el.classList.toggle("expanded");
+});

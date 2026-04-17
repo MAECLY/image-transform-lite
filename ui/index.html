@@ -14,7 +14,20 @@
                     <div id="presets-list" class="presets-list">
                         <!-- Presets injected by JS -->
                     </div>
-                    <button id="btn-add-preset" class="btn-add-preset">+ Nueva Receta</button>
+                    <div class="presets-actions">
+                        <button id="btn-add-preset" class="btn-preset-act" title="Nueva Receta">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Nueva
+                        </button>
+                        <button id="menu-load-preset" class="btn-preset-act" title="Importar Preset JSON">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Importar
+                        </button>
+                        <button id="menu-save-preset" class="btn-preset-act" title="Exportar Preset JSON">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Exportar
+                        </button>
+                    </div>
                 </div>
 
                 <div class="sidebar-section">
@@ -37,19 +50,6 @@
 
                 <header class="header">
                     <h1>Image Transform Lite <span id="app-version" class="version-badge"></span></h1>
-                    <div class="header-actions">
-                        <div class="dropdown">
-                            <button id="btn-menu" class="btn-icon" title="Menu">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                                </svg>
-                            </button>
-                            <div id="dropdown-menu" class="dropdown-menu">
-                                <button id="menu-load-preset">📥 Importar Preset JSON...</button>
-                                <button id="menu-save-preset">📤 Exportar Preset JSON...</button>
-                            </div>
-                        </div>
-                    </div>
                 </header>
 
 
@@ -87,7 +87,7 @@
                     <span id="preview-index-text" class="nav-text">Imagen 1 de 1</span>
                     <button id="btn-next-img" class="btn-nav">&rsaquo;</button>
                 </div>
-                <div class="preview-info" id="preview-info">Imagen: ...</div>
+                <div class="preview-info" id="preview-info">Imagen: <span class="preview-filename" id="preview-filename" data-tooltip="">...</span></div>
             </section>
 
             <!-- Transforms -->

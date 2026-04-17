@@ -18,7 +18,7 @@ class TestAppConfig:
         assert cfg.contrast_factor == 1.0
         assert cfg.sharpness_factor == 1.0
         assert cfg.transform_order == list(DEFAULT_ORDER)
-        assert cfg.webp_quality == 90
+        assert cfg.output_quality == 90
 
     def test_to_dict_and_from_dict(self):
         cfg = AppConfig(flip_direction="vertical", rotate_degrees=5)
@@ -38,7 +38,7 @@ class TestAppConfig:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "config.json"
             with patch.object(AppConfig, "_config_path", return_value=path):
-                cfg = AppConfig(rotate_degrees=15, webp_quality=80)
+                cfg = AppConfig(rotate_degrees=15, output_quality=80)
                 cfg.save()
 
                 assert path.exists()
@@ -47,7 +47,7 @@ class TestAppConfig:
 
                 loaded = AppConfig.load()
                 assert loaded.rotate_degrees == 15
-                assert loaded.webp_quality == 80
+                assert loaded.output_quality == 80
 
     def test_load_missing_file(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -57,7 +57,15 @@ class TestAppConfig:
                 assert cfg.flip_enabled is True  # default
 
     def test_transform_order_preserved(self):
-        order = ["sharpness", "flip", "rotate", "crop", "resize", "brightness", "contrast"]
+        order = [
+            "sharpness",
+            "flip",
+            "rotate",
+            "crop",
+            "resize",
+            "brightness",
+            "contrast",
+        ]
         cfg = AppConfig(transform_order=order)
         d = cfg.to_dict()
         cfg2 = AppConfig.from_dict(d)
