@@ -15,8 +15,8 @@
 ## 🟡 Phase 2: The "Squoosh" Experience (UX/DX)
 
 - [x] **Live Preview Window**: Add a "Before/After" sample image that updates in real-time as sliders change.
-- [ ] **Output Format Expansion**: Support JPEG, PNG, TIFF (Remove WebP-only restriction).
-- [ ] **Preset System**: Save/Load transformation chains as JSON.
+- [x] **Output Format Expansion**: Support JPEG, PNG, TIFF (Remove WebP-only restriction).
+- [x] **Preset System**: Save/Load transformation chains as JSON (Recetas).
 - [ ] **Advanced Logging**: Per-image success/failure reports.
 
 ## 🟠 Phase 3: Apple Silicon Performance (The Differentiators)

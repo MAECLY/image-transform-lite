@@ -26,10 +26,11 @@ input_files/rosas/foto.png        →  output_files/rosas/foto.webp
 input_files/a/b/c/foto.bmp        →  output_files/a/b/c/foto.webp
 ```
 
+El formato de salida es configurable (WebP, JPEG, PNG, TIFF).
+
 - Busca imagenes recursivamente en la carpeta de input (`.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`, `.tiff`)
 - Preserva la estructura de carpetas en el output
-- Conserva el nombre del archivo, solo cambia la extension a `.webp`
-- Formato de salida: WebP (calidad configurable, default 90)
+- Conserva el nombre del archivo, solo cambia la extension segun el formato de salida
 
 ## Instalacion rapida
 
@@ -76,6 +77,15 @@ Genera:
 
 Target: macOS Apple Silicon (arm64). Bundle de ~32MB.
 
+## Recetas (Presets)
+
+Puedes guardar y cargar combinaciones de transformaciones como "Recetas":
+
+- **Nueva**: guarda la configuracion actual como receta
+- **Importar**: carga un preset desde archivo JSON
+- **Exportar**: exporta la configuracion actual como archivo JSON
+- Las recetas se muestran como chips en la sidebar y se aplican con un click
+
 ## Configuracion
 
 La configuracion se guarda automaticamente con cada cambio en la UI:
@@ -83,7 +93,7 @@ La configuracion se guarda automaticamente con cada cambio en la UI:
 - **Modo desarrollo:** `./config.json`
 - **App bundleada:** `~/Library/Application Support/ImageTransformLite/config.json`
 
-Incluye: transformaciones activas, parametros, orden de ejecucion, calidad WebP, y directorios de input/output.
+Incluye: transformaciones activas, parametros, orden de ejecucion, formato y calidad de salida, y directorios de input/output.
 
 ## Tech Stack
 

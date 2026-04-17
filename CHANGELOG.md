@@ -3,6 +3,26 @@
 Todos los cambios notables de este proyecto se documentan aqui.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.3.0] - 2026-04-17
+
+### Added
+- Presets (Recetas) como chips horizontales con wrap en la sidebar — mejor aprovechamiento del espacio
+- Botones de Importar/Exportar JSON directamente en la sidebar junto a "Nueva Receta"
+- Navegacion de preview con botones prev/next y wrap-around (primera ↔ ultima imagen)
+- Tooltip CSS custom en el nombre de imagen del preview (hover muestra nombre completo)
+- Nombre de archivo del preview es "pressable" — click expande el texto completo
+
+### Changed
+- Sidebar reorganizada: Import/Export movidos del dropdown del header a la sidebar
+- Eliminado el dropdown menu del header (ya no es necesario)
+- Layout del preview mejorado: imagenes ya no se desbordan del marco al redimensionar la ventana
+- Sidebar y contenido principal con scroll independiente
+
+### Fixed
+- Botones de navegacion del preview (prev/next) no tenian event listeners asignados
+- Preview se salia del marco del contenedor al mostrar imagenes grandes
+- Tests: `webp_quality` renombrado a `output_quality` en test_config.py (bug pre-existente)
+
 ## [1.2.1] - 2026-03-27
 
 ### Fixed
