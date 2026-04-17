@@ -106,6 +106,7 @@ async function init() {
   try {
     const version = await pywebview.api.get_version();
     document.getElementById("app-version").textContent = "v" + version;
+    currentVersion = version;
   } catch (e) {}
 
   // Check for updates after UI is ready
@@ -116,13 +117,24 @@ async function checkForUpdates() {
   try {
     const result = await pywebview.api.check_for_updates();
     if (result && result.update_available) {
-      document.getElementById("update-msg").textContent =
-        `Nueva version ${result.latest_version} disponible.`;
-      const link = document.getElementById("update-link");
-      link.href = result.download_url || result.release_url;
-      document.getElementById("update-banner").style.display = "flex";
+      showUpdateBanner(result);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Auto update check failed:", e);
+  }
+}
+
+function showUpdateBanner(result) {
+  const banner = document.getElementById("update-banner");
+  document.getElementById("update-msg").textContent =
+    `Nueva versi\u00f3n ${result.latest_version} disponible`;
+  const link = document.getElementById("update-link");
+  link.href = result.download_url || result.release_url;
+  link.dataset.latestVersion = result.latest_version;
+  link.dataset.downloadUrl = result.download_url || "";
+  link.dataset.releaseNotes = result.release_notes || "";
+  link.dataset.releaseUrl = result.release_url || "";
+  banner.style.display = "flex";
 }
 
 async function updatePreview() {
@@ -451,44 +463,177 @@ document.getElementById("update-dismiss").addEventListener("click", () => {
   document.getElementById("update-banner").style.display = "none";
 });
 
+// Update banner click: open update modal
+document.getElementById("update-link").addEventListener("click", (e) => {
+  e.preventDefault();
+  const link = document.getElementById("update-link");
+  const data = {
+    latestVersion: link.dataset.latestVersion || "",
+    downloadUrl: link.dataset.downloadUrl || "",
+    releaseNotes: link.dataset.releaseNotes || "",
+    releaseUrl: link.dataset.releaseUrl || "",
+  };
+  showUpdateModal(data);
+});
+
 // Modal helper
 function showModal(html) {
   document.getElementById("modal-body").innerHTML = html;
   document.getElementById("modal-overlay").style.display = "flex";
 }
 
-document.getElementById("modal-close").addEventListener("click", () => {
+function hideModal() {
   document.getElementById("modal-overlay").style.display = "none";
+}
+
+document.getElementById("modal-close").addEventListener("click", () => {
+  hideModal();
 });
 
 document.getElementById("modal-overlay").addEventListener("click", (e) => {
   if (e.target === e.currentTarget) {
-    document.getElementById("modal-overlay").style.display = "none";
+    hideModal();
   }
 });
 
-// Manual check for updates
+function showUpdateModal(data) {
+  const notesHtml = data.releaseNotes
+    ? `<div class="update-notes">${simpleMarkdown(data.releaseNotes)}</div>`
+    : "";
+  const html = `
+    <div class="update-modal">
+      <div class="update-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 0117.778-7.778z"/>
+          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 0117.778-7.778z" transform="translate(0,0)"/>
+        </svg>
+      </div>
+      <div class="update-title">Nueva versi\u00f3n ${data.latestVersion} disponible</div>
+      <div class="update-current">Versi\u00f3n actual: ${currentVersion}</div>
+      ${notesHtml}
+      <div class="update-actions">
+        <button id="btn-update-download" class="btn-primary">Actualizar</button>
+        <button id="btn-update-skip" class="btn-cancel">Saltar esta versi\u00f3n</button>
+        <a href="${data.releaseUrl}" target="_blank" class="btn-link">Ver en GitHub</a>
+      </div>
+    </div>
+  `;
+  showModal(html);
+
+  document.getElementById("btn-update-download").addEventListener("click", () => {
+    hideModal();
+    if (data.downloadUrl) {
+      startUpdateDownload(data.downloadUrl);
+    } else {
+      window.open(data.releaseUrl, "_blank");
+    }
+  });
+
+  document.getElementById("btn-update-skip").addEventListener("click", async () => {
+    await pywebview.api.skip_update(data.latestVersion);
+    document.getElementById("update-banner").style.display = "none";
+    hideModal();
+    toast.show("Se omiti\u00f3 la versi\u00f3n " + data.latestVersion, "info");
+  });
+}
+
+function simpleMarkdown(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/^### (.+)$/gm, "<strong>$1</strong>")
+    .replace(/^## (.+)$/gm, "<strong>$1</strong>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/^- (.+)$/gm, "\u2022 $1")
+    .replace(/\n/g, "<br>");
+}
+
+let currentVersion = "";
+let updateDownloadPolling = null;
+
+async function startUpdateDownload(downloadUrl) {
+  const overlay = document.getElementById("update-progress-overlay");
+  overlay.style.display = "flex";
+  document.getElementById("update-progress-bar").style.width = "0%";
+  document.getElementById("update-progress-text").textContent = "Descargando...";
+
+  try {
+    pywebview.api.download_and_prepare_update(downloadUrl);
+
+    if (updateDownloadPolling) clearInterval(updateDownloadPolling);
+    updateDownloadPolling = setInterval(async () => {
+      const p = await pywebview.api.get_download_progress();
+      const pct = p.total > 0 ? (p.downloaded / p.total) * 100 : 0;
+      document.getElementById("update-progress-bar").style.width = pct + "%";
+
+      if (p.downloaded > 0 && p.downloaded >= p.total) {
+        clearInterval(updateDownloadPolling);
+        updateDownloadPolling = null;
+        showUpdateInstructions();
+      }
+    }, 200);
+  } catch (e) {
+    overlay.style.display = "none";
+    toast.show("Error al descargar la actualizaci\u00f3n.", "error");
+  }
+}
+
+function showUpdateInstructions() {
+  const overlay = document.getElementById("update-progress-overlay");
+  overlay.querySelector(".update-progress-content").innerHTML = `
+    <div class="update-success-icon">\u2713</div>
+    <div class="update-title">Descarga completa</div>
+    <div class="update-instructions">
+      La nueva versi\u00f3n se ha descargado. Para completar la actualizaci\u00f3n:
+    </div>
+    <ol class="update-steps">
+      <li>Haz clic en <strong>Abrir en Finder</strong></li>
+      <li>Arrastra <strong>Image Transform Lite.app</strong> a tu carpeta Aplicaciones</li>
+      <li>Cierra esta aplicaci\u00f3n y abre la nueva versi\u00f3n</li>
+    </ol>
+    <div class="update-actions">
+      <button id="btn-reveal-update" class="btn-primary">Abrir en Finder</button>
+      <button id="btn-close-update" class="btn-cancel">Cerrar</button>
+    </div>
+  `;
+
+  document.getElementById("btn-reveal-update").addEventListener("click", async () => {
+    await pywebview.api.reveal_update();
+  });
+  document.getElementById("btn-close-update").addEventListener("click", () => {
+    overlay.style.display = "none";
+    document.getElementById("update-banner").style.display = "none";
+  });
+}
+
+// Manual check for updates (clears skip so it always checks)
 document
   .getElementById("menu-check-updates")
   .addEventListener("click", async () => {
+    await pywebview.api.clear_skip_version();
     showModal("Buscando actualizaciones...");
     try {
       const result = await pywebview.api.check_for_updates();
       if (result && result.update_available) {
-        document.getElementById("update-msg").textContent =
-          `Nueva version ${result.latest_version} disponible.`;
-        const link = document.getElementById("update-link");
-        link.href = result.download_url || result.release_url;
-        document.getElementById("update-banner").style.display = "flex";
-        showModal(
-          `Nueva version <strong>${result.latest_version}</strong> disponible.<br><a href="${result.download_url || result.release_url}" target="_blank" style="color:var(--accent)">Descargar</a>`,
-        );
+        hideModal();
+        showUpdateBanner(result);
+        showUpdateModal({
+          latestVersion: result.latest_version,
+          downloadUrl: result.download_url || "",
+          releaseNotes: result.release_notes || "",
+          releaseUrl: result.release_url || "",
+        });
       } else {
-        document.getElementById("modal-overlay").style.display = "none";
-        toast.show("Ya tienes la ultima version.", "info");
+        hideModal();
+        if (result && result.error) {
+          toast.show("No se pudo verificar: " + result.error, "error");
+        } else {
+          toast.show("Ya tienes la \u00faltima versi\u00f3n.", "info");
+        }
       }
     } catch (e) {
-      document.getElementById("modal-overlay").style.display = "none";
+      hideModal();
       toast.show("No se pudo verificar actualizaciones.", "error");
     }
   });
@@ -498,7 +643,9 @@ document.getElementById("menu-about").addEventListener("click", async () => {
   try {
     const version = await pywebview.api.get_version();
     showModal(
-      `<strong>Image Transform Lite</strong><br>Version ${version}<br><br><span style="font-size:12px;color:var(--text-secondary)">macOS Apple Silicon</span>`,
+      `<strong>Image Transform Lite</strong><br>Version ${version}<br><br>` +
+      `<span style="font-size:12px;color:var(--text-secondary)">macOS Apple Silicon</span><br><br>` +
+      `<span style="font-size:13px;">Hecho por <a href="https://maecly.com/" target="_blank" style="color:var(--accent);text-decoration:none;">MigelAngelEC</a></span>`,
     );
   } catch (e) {
     showModal("<strong>Image Transform Lite</strong>");

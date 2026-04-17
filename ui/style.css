@@ -795,6 +795,98 @@ body {
     font-family: inherit;
 }
 
+/* Update modal */
+.update-modal {
+    text-align: center;
+}
+
+.update-icon {
+    margin-bottom: 12px;
+}
+
+.update-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.update-current {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.update-notes {
+    text-align: left;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.update-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 20px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: background 0.15s;
+}
+
+.btn-link:hover {
+    background: rgba(0,122,255,0.08);
+}
+
+.update-success-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--success);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 auto 12px;
+}
+
+.update-instructions {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.update-steps {
+    text-align: left;
+    font-size: 12px;
+    color: var(--text);
+    margin: 0 auto 16px;
+    padding-left: 20px;
+    line-height: 1.8;
+}
+
+.update-steps li {
+    margin-bottom: 4px;
+}
+
 /* Save preset modal */
 .modal-heading {
     font-size: 15px;

@@ -3,6 +3,22 @@
 Todos los cambios notables de este proyecto se documentan aqui.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.3.1] - 2026-04-17
+
+### Added
+- Sistema de actualizaciones mejorado: modal con release notes, boton "Saltar esta version" y "Ver en GitHub"
+- Auto-descarga de actualizaciones: descarga el .zip, extrae y abre Finder para reemplazar la app
+- Filtro de asset arm64 en el updater (prioriza .zip con arm64 en el nombre)
+- Skip version persistente: si el usuario salta una version, no se le notifica de nuevo hasta la siguiente
+- Manejo de errores de red en el updater: muestra mensajes claros (HTTP error, sin conexion)
+- Dialogo "Acerca de" con credito del autor (MigelAngelEC)
+- Repo hecho publico para que el updater funcione sin autenticacion
+
+### Changed
+- Updater: `check_for_updates()` ahora acepta `skip_version` y devuelve `release_notes`
+- Updater: manejo de errores diferenciado (HTTPError, URLError, Exception generica)
+- API: nuevos metodos `skip_update()`, `clear_skip_version()`, `download_and_prepare_update()`, `get_download_progress()`, `reveal_update()`
+
 ## [1.3.0] - 2026-04-17
 
 ### Added

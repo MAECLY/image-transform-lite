@@ -4,7 +4,15 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
 
-DEFAULT_ORDER = ["flip", "rotate", "crop", "resize", "brightness", "contrast", "sharpness"]
+DEFAULT_ORDER = [
+    "flip",
+    "rotate",
+    "crop",
+    "resize",
+    "brightness",
+    "contrast",
+    "sharpness",
+]
 
 
 @dataclass
@@ -51,10 +59,15 @@ class AppConfig:
     input_dir: str = "input_files"
     output_dir: str = "output_files"
 
+    # Update
+    skip_version: str = ""
+
     @classmethod
     def _config_path(cls) -> Path:
         if getattr(sys, "frozen", False):
-            config_dir = Path.home() / "Library" / "Application Support" / "ImageTransformLite"
+            config_dir = (
+                Path.home() / "Library" / "Application Support" / "ImageTransformLite"
+            )
             config_dir.mkdir(parents=True, exist_ok=True)
             return config_dir / "config.json"
         return Path(__file__).resolve().parent.parent / "config.json"
@@ -72,7 +85,9 @@ class AppConfig:
 
     def save(self) -> None:
         path = self._config_path()
-        path.write_text(json.dumps(self.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8")
+        path.write_text(
+            json.dumps(self.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8"
+        )
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -98,10 +113,12 @@ class AppConfig:
     @classmethod
     def get_presets_dir(cls) -> Path:
         if getattr(sys, "frozen", False):
-            config_dir = Path.home() / "Library" / "Application Support" / "ImageTransformLite"
+            config_dir = (
+                Path.home() / "Library" / "Application Support" / "ImageTransformLite"
+            )
         else:
             config_dir = _app_base_dir()
-        
+
         presets_dir = config_dir / "presets"
         presets_dir.mkdir(parents=True, exist_ok=True)
         return presets_dir

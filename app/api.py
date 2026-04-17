@@ -1,3 +1,4 @@
+import logging
 import subprocess
 import io
 import base64
@@ -6,8 +7,15 @@ from pathlib import Path
 
 from app.config import AppConfig
 from app.processor import BatchProcessor, discover_images
-from app.updater import check_for_updates as _check_updates
+from app.updater import (
+    check_for_updates as _check_updates,
+    download_update as _download_update,
+    extract_update as _extract_update,
+    reveal_in_finder as _reveal_in_finder,
+)
 from app.version import __version__
+
+log = logging.getLogger(__name__)
 
 
 class Api:
@@ -30,11 +38,13 @@ class Api:
         items = []
         for f in files:
             rel = f.relative_to(input_dir)
-            items.append({
-                "name": f.name,
-                "relative_path": str(rel),
-                "size": f.stat().st_size,
-            })
+            items.append(
+                {
+                    "name": f.name,
+                    "relative_path": str(rel),
+                    "size": f.stat().st_size,
+                }
+            )
         return {"count": len(items), "files": items}
 
     def process_images(self) -> dict:
@@ -46,18 +56,26 @@ class Api:
 
     def get_progress(self) -> dict:
         if self._processor is None:
-            return {"current": 0, "total": 0, "current_file": "", "done": True, "errors": []}
+            return {
+                "current": 0,
+                "total": 0,
+                "current_file": "",
+                "done": True,
+                "errors": [],
+            }
         return self._processor.progress()
 
-    def get_preview(self, config_dict: dict, image_path: str | None = None, index: int | None = None) -> dict:
+    def get_preview(
+        self, config_dict: dict, image_path: str | None = None, index: int | None = None
+    ) -> dict:
         try:
             # Use the provided config or current app config
             current_cfg = AppConfig.from_dict(config_dict)
-            
+
             # If no image_path is provided, try to pick the image by index or first available
             input_dir = self.config.resolve_input_dir()
             files = discover_images(input_dir)
-            
+
             if not files:
                 return {"error": "No images found in input directory for preview"}
 
@@ -69,15 +87,17 @@ class Api:
                 path = files[safe_index]
             else:
                 path = files[0]
-                
+
             if not path.exists():
                 return {"error": "Preview image file not found"}
 
             from app.processor import get_preview_base64
+
             preview_b64 = get_preview_base64(path, current_cfg)
-            
+
             # Also return the original image for a B&A comparison
             from app.processor import load_image
+
             img_orig = load_image(path)
             buf_orig = io.BytesIO()
             # Simple conversion for original preview
@@ -85,13 +105,13 @@ class Api:
                 img_orig = img_orig.convert("RGB")
             img_orig.save(buf_orig, format="WEBP", quality=80)
             orig_b64 = base64.b64encode(buf_orig.getvalue()).decode()
-            
+
             return {
                 "preview": preview_b64,
                 "original": f"data:image/webp;base64,{orig_b64}",
                 "filename": path.name,
                 "index": files.index(path) if path in files else 0,
-                "total": len(files)
+                "total": len(files),
             }
         except Exception as e:
             return {"error": str(e)}
@@ -142,7 +162,45 @@ class Api:
         return __version__
 
     def check_for_updates(self) -> dict:
-        return _check_updates(__version__)
+        return _check_updates(__version__, skip_version=self.config.skip_version)
+
+    def skip_update(self, version: str) -> dict:
+        self.config.skip_version = version
+        self.config.save()
+        return {"success": True}
+
+    def clear_skip_version(self) -> dict:
+        self.config.skip_version = ""
+        self.config.save()
+        return {"success": True}
+
+    def download_and_prepare_update(self, download_url: str) -> dict:
+        try:
+
+            def on_progress(downloaded: int, total: int):
+                self._update_download_progress = {
+                    "downloaded": downloaded,
+                    "total": total,
+                }
+
+            self._update_download_progress = {"downloaded": 0, "total": 0}
+            zip_path = _download_update(download_url, on_progress=on_progress)
+            app_path = _extract_update(zip_path)
+            self._downloaded_app_path = app_path
+            return {"success": True, "app_path": app_path}
+        except Exception as e:
+            log.error("Update download failed: %s", e)
+            return {"error": str(e)}
+
+    def get_download_progress(self) -> dict:
+        return getattr(self, "_update_download_progress", {"downloaded": 0, "total": 0})
+
+    def reveal_update(self) -> dict:
+        app_path = getattr(self, "_downloaded_app_path", None)
+        if not app_path:
+            return {"error": "No update downloaded"}
+        _reveal_in_finder(app_path)
+        return {"success": True}
 
     def reset_config(self) -> dict:
         self.config = AppConfig()
@@ -161,16 +219,21 @@ class Api:
         try:
             presets_dir = AppConfig.get_presets_dir()
             # Clean name to avoid filesystem issues
-            safe_name = "".join(c for c in name if c.isalnum() or c in (' ', '_', '-')).strip()
+            safe_name = "".join(
+                c for c in name if c.isalnum() or c in (" ", "_", "-")
+            ).strip()
             if not safe_name:
                 return {"error": "Nombre de preset inválido"}
-            
+
             path = presets_dir / f"{safe_name}.json"
-            
+
             # Save only transform settings, not directories
-            save_data = {k: v for k, v in config_dict.items() 
-                         if k not in ("input_dir", "output_dir")}
-            
+            save_data = {
+                k: v
+                for k, v in config_dict.items()
+                if k not in ("input_dir", "output_dir")
+            }
+
             path.write_text(json.dumps(save_data, indent=2), encoding="utf-8")
             return {"success": True, "name": safe_name}
         except Exception as e:
@@ -180,15 +243,15 @@ class Api:
         try:
             presets_dir = AppConfig.get_presets_dir()
             path = presets_dir / f"{name}.json"
-            
+
             if not path.exists():
                 return {"error": "Preset no encontrado"}
-            
+
             data = json.loads(path.read_text(encoding="utf-8"))
             # Merge preset data into current config to keep directories
             current_data = self.config.to_dict()
             merged_data = {**current_data, **data}
-            
+
             self.config = AppConfig.from_dict(merged_data)
             self.config.save()
             return self.config.to_dict()
@@ -210,28 +273,35 @@ class Api:
         try:
             if self.window is None:
                 return {"error": "Window not available"}
-            
+
             result = self.window.create_file_dialog(
-                dialog_type=30, # SAVE_DIALOG
+                dialog_type=30,  # SAVE_DIALOG
             )
-            
+
             if not result or not result or len(result) == 0 or not result[0]:
                 return {"canceled": True}
-            
+
             path_str = result[0]
             chosen_path = Path(path_str)
-            
+
             if chosen_path.name == "":
                 return {"error": "Invalid file path selected"}
-                
+
             if chosen_path.suffix.lower() != ".json":
                 chosen_path = chosen_path.with_suffix(".json")
-                
-            save_data = {k: v for k, v in config_dict.items() 
-                         if k not in ("input_dir", "output_dir")}
-            
+
+            save_data = {
+                k: v
+                for k, v in config_dict.items()
+                if k not in ("input_dir", "output_dir")
+            }
+
             chosen_path.write_text(json.dumps(save_data, indent=2), encoding="utf-8")
-            return {"success": True, "path": str(chosen_path), "filename": chosen_path.name}
+            return {
+                "success": True,
+                "path": str(chosen_path),
+                "filename": chosen_path.name,
+            }
         except Exception as e:
             return {"error": str(e)}
 
@@ -240,13 +310,13 @@ class Api:
             path = Path(path_str)
             if not path.exists():
                 return {"error": "Preset file not found"}
-            
+
             data = json.loads(path.read_text(encoding="utf-8"))
             # Merge preset data into current config
             # We preserve the directories so the user doesn't lose their paths
             current_cfg = AppConfig.from_dict(self.config.to_dict())
             updated_cfg = AppConfig.from_dict({**self.config.to_dict(), **data})
-            
+
             self.config = updated_cfg
             self.config.save()
             return self.config.to_dict()
