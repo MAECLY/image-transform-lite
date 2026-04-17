@@ -89,6 +89,10 @@ let polling = null;
 let previewTimeout = null;
 let previewIndex = 0;
 let previewTotal = 0;
+let currentVersion = "";
+let updateDownloadPolling = null;
+let updateCheckPolling = null;
+let updateCheckBusy = false;
 
 // Wait for pywebview API
 window.addEventListener("pywebviewready", init);
@@ -115,10 +119,22 @@ async function init() {
 
 async function checkForUpdates() {
   try {
-    const result = await pywebview.api.check_for_updates();
-    if (result && result.update_available) {
-      showUpdateBanner(result);
-    }
+    await pywebview.api.start_update_check();
+    if (updateCheckPolling) clearInterval(updateCheckPolling);
+    updateCheckPolling = setInterval(async () => {
+      try {
+        const result = await pywebview.api.get_update_check_result();
+        if (!result.done) return;
+        clearInterval(updateCheckPolling);
+        updateCheckPolling = null;
+        if (result.update_available) {
+          showUpdateBanner(result);
+        }
+      } catch (e) {
+        clearInterval(updateCheckPolling);
+        updateCheckPolling = null;
+      }
+    }, 300);
   } catch (e) {
     console.error("Auto update check failed:", e);
   }
@@ -549,9 +565,6 @@ function simpleMarkdown(text) {
     .replace(/\n/g, "<br>");
 }
 
-let currentVersion = "";
-let updateDownloadPolling = null;
-
 async function startUpdateDownload(downloadUrl) {
   const overlay = document.getElementById("update-progress-overlay");
   overlay.style.display = "flex";
@@ -559,20 +572,31 @@ async function startUpdateDownload(downloadUrl) {
   document.getElementById("update-progress-text").textContent = "Descargando...";
 
   try {
-    pywebview.api.download_and_prepare_update(downloadUrl);
+    await pywebview.api.start_update_download(downloadUrl);
 
     if (updateDownloadPolling) clearInterval(updateDownloadPolling);
     updateDownloadPolling = setInterval(async () => {
-      const p = await pywebview.api.get_download_progress();
-      const pct = p.total > 0 ? (p.downloaded / p.total) * 100 : 0;
-      document.getElementById("update-progress-bar").style.width = pct + "%";
+      try {
+        const p = await pywebview.api.get_download_progress();
+        const pct = p.total > 0 ? (p.downloaded / p.total) * 100 : 0;
+        document.getElementById("update-progress-bar").style.width = pct + "%";
 
-      if (p.downloaded > 0 && p.downloaded >= p.total) {
+        if (p.done) {
+          clearInterval(updateDownloadPolling);
+          updateDownloadPolling = null;
+          if (p.result && p.result.error) {
+            overlay.style.display = "none";
+            toast.show("Error al descargar: " + p.result.error, "error");
+          } else {
+            showUpdateInstructions();
+          }
+        }
+      } catch (e) {
         clearInterval(updateDownloadPolling);
         updateDownloadPolling = null;
-        showUpdateInstructions();
+        overlay.style.display = "none";
       }
-    }, 200);
+    }, 300);
   } catch (e) {
     overlay.style.display = "none";
     toast.show("Error al descargar la actualizaci\u00f3n.", "error");
@@ -611,30 +635,59 @@ function showUpdateInstructions() {
 document
   .getElementById("menu-check-updates")
   .addEventListener("click", async () => {
-    await pywebview.api.clear_skip_version();
-    showModal("Buscando actualizaciones...");
+    if (updateCheckBusy) return;
+    updateCheckBusy = true;
+    const btn = document.getElementById("menu-check-updates");
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+
     try {
-      const result = await pywebview.api.check_for_updates();
-      if (result && result.update_available) {
-        hideModal();
-        showUpdateBanner(result);
-        showUpdateModal({
-          latestVersion: result.latest_version,
-          downloadUrl: result.download_url || "",
-          releaseNotes: result.release_notes || "",
-          releaseUrl: result.release_url || "",
-        });
-      } else {
-        hideModal();
-        if (result && result.error) {
-          toast.show("No se pudo verificar: " + result.error, "error");
-        } else {
-          toast.show("Ya tienes la \u00faltima versi\u00f3n.", "info");
+      await pywebview.api.clear_skip_version();
+      showModal("Buscando actualizaciones...");
+      await pywebview.api.start_update_check();
+
+      // Poll for result
+      const pollCheck = setInterval(async () => {
+        try {
+          const result = await pywebview.api.get_update_check_result();
+          if (!result.done) return;
+          clearInterval(pollCheck);
+
+          if (result.update_available) {
+            hideModal();
+            showUpdateBanner(result);
+            showUpdateModal({
+              latestVersion: result.latest_version,
+              downloadUrl: result.download_url || "",
+              releaseNotes: result.release_notes || "",
+              releaseUrl: result.release_url || "",
+            });
+          } else {
+            hideModal();
+            if (result.error) {
+              toast.show("No se pudo verificar: " + result.error, "error");
+            } else {
+              toast.show("Ya tienes la \u00faltima versi\u00f3n.", "info");
+            }
+          }
+          updateCheckBusy = false;
+          btn.disabled = false;
+          btn.style.opacity = "";
+        } catch (e) {
+          clearInterval(pollCheck);
+          hideModal();
+          toast.show("No se pudo verificar actualizaciones.", "error");
+          updateCheckBusy = false;
+          btn.disabled = false;
+          btn.style.opacity = "";
         }
-      }
+      }, 300);
     } catch (e) {
       hideModal();
       toast.show("No se pudo verificar actualizaciones.", "error");
+      updateCheckBusy = false;
+      btn.disabled = false;
+      btn.style.opacity = "";
     }
   });
 

@@ -3,6 +3,16 @@
 Todos los cambios notables de este proyecto se documentan aqui.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.3.2] - 2026-04-17
+
+### Fixed
+- Crash al presionar "Buscar Actualizaciones" multiples veces: la llamada API bloqueaba el hilo principal de la UI
+- El contenedor de toasts faltaba en el HTML, causando errores JS silenciosos que colgaban la app
+- `check_for_updates` ahora se ejecuta en un thread separado via `start_update_check` + `get_update_check_result` (polling)
+- `download_and_prepare_update` renombrado a `start_update_download` — se ejecuta en thread con polling de progreso
+- Boton "Buscar Actualizaciones" se deshabilita durante la verificacion para evitar multiples clics
+- Mejor manejo de errores de red: mensajes diferenciados para HTTP errors, errores de conexion, etc.
+
 ## [1.3.1] - 2026-04-17
 
 ### Added

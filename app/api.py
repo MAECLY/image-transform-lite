@@ -3,6 +3,7 @@ import subprocess
 import io
 import base64
 import json
+import threading
 from pathlib import Path
 
 from app.config import AppConfig
@@ -23,6 +24,12 @@ class Api:
         self.config = config
         self.window = window
         self._processor: BatchProcessor | None = None
+        self._update_check_result: dict | None = None
+        self._update_check_done: threading.Event = threading.Event()
+        self._update_download_result: dict | None = None
+        self._update_download_progress: dict = {"downloaded": 0, "total": 0}
+        self._update_download_done: threading.Event = threading.Event()
+        self._downloaded_app_path: str | None = None
 
     def get_config(self) -> dict:
         return self.config.to_dict()
@@ -164,6 +171,31 @@ class Api:
     def check_for_updates(self) -> dict:
         return _check_updates(__version__, skip_version=self.config.skip_version)
 
+    def start_update_check(self) -> dict:
+        self._update_check_done.clear()
+        self._update_check_result = None
+
+        def _run():
+            try:
+                self._update_check_result = _check_updates(
+                    __version__, skip_version=self.config.skip_version
+                )
+            except Exception as e:
+                log.error("Update check thread error: %s", e)
+                self._update_check_result = {"update_available": False, "error": str(e)}
+            finally:
+                self._update_check_done.set()
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        return {"started": True}
+
+    def get_update_check_result(self) -> dict:
+        if not self._update_check_done.is_set():
+            return {"done": False}
+        result = self._update_check_result or {"update_available": False}
+        return {"done": True, **result}
+
     def skip_update(self, version: str) -> dict:
         self.config.skip_version = version
         self.config.save()
@@ -174,29 +206,43 @@ class Api:
         self.config.save()
         return {"success": True}
 
-    def download_and_prepare_update(self, download_url: str) -> dict:
-        try:
+    def start_update_download(self, download_url: str) -> dict:
+        self._update_download_done.clear()
+        self._update_download_result = None
+        self._update_download_progress = {"downloaded": 0, "total": 0}
 
-            def on_progress(downloaded: int, total: int):
-                self._update_download_progress = {
-                    "downloaded": downloaded,
-                    "total": total,
-                }
+        def _run():
+            try:
 
-            self._update_download_progress = {"downloaded": 0, "total": 0}
-            zip_path = _download_update(download_url, on_progress=on_progress)
-            app_path = _extract_update(zip_path)
-            self._downloaded_app_path = app_path
-            return {"success": True, "app_path": app_path}
-        except Exception as e:
-            log.error("Update download failed: %s", e)
-            return {"error": str(e)}
+                def on_progress(downloaded: int, total: int):
+                    self._update_download_progress = {
+                        "downloaded": downloaded,
+                        "total": total,
+                    }
+
+                zip_path = _download_update(download_url, on_progress=on_progress)
+                app_path = _extract_update(zip_path)
+                self._downloaded_app_path = app_path
+                self._update_download_result = {"success": True, "app_path": app_path}
+            except Exception as e:
+                log.error("Update download failed: %s", e)
+                self._update_download_result = {"error": str(e)}
+            finally:
+                self._update_download_done.set()
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        return {"started": True}
 
     def get_download_progress(self) -> dict:
-        return getattr(self, "_update_download_progress", {"downloaded": 0, "total": 0})
+        prog = dict(self._update_download_progress)
+        prog["done"] = self._update_download_done.is_set()
+        if self._update_download_done.is_set() and self._update_download_result:
+            prog["result"] = self._update_download_result
+        return prog
 
     def reveal_update(self) -> dict:
-        app_path = getattr(self, "_downloaded_app_path", None)
+        app_path = self._downloaded_app_path
         if not app_path:
             return {"error": "No update downloaded"}
         _reveal_in_finder(app_path)
