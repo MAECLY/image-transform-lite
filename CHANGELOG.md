@@ -3,6 +3,14 @@
 Todos los cambios notables de este proyecto se documentan aqui.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.3.3] - 2026-04-17
+
+### Fixed
+- Error "Error de red. Verifica tu conexion a internet" al verificar actualizaciones desde la app empaquetada
+- Certificados SSL CA no estaban incluidos en el bundle de PyInstaller, impidiendo conexiones HTTPS
+- `updater.py` ahora usa `certifi` como fuente de certificados CA con fallback al sistema
+- `build.spec` actualizado para incluir `certifi` en hiddenimports y `cacert.pem` como data file
+
 ## [1.3.2] - 2026-04-17
 
 ### Fixed

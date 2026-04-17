@@ -3,11 +3,15 @@
 import os
 import re
 
+import certifi
+
 # Read version from app/version.py without importing the package
 _version_file = os.path.join(os.path.dirname(os.path.abspath('build.spec')), 'app', 'version.py')
 with open(_version_file) as f:
     _version_match = re.search(r"^__version__\s*=\s*['\"]([^'\"]+)['\"]", f.read(), re.M)
 _app_version = _version_match.group(1) if _version_match else '0.0.0'
+
+_certifi_cacert = os.path.join(os.path.dirname(certifi.__file__), 'cacert.pem')
 
 block_cipher = None
 
@@ -17,6 +21,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('ui/', 'ui/'),
+        (_certifi_cacert, 'certifi/'),
     ],
     hiddenimports=[
         'webview',
@@ -26,6 +31,7 @@ a = Analysis(
         'PIL.ImageOps',
         'PIL.ImageEnhance',
         'objc',
+        'certifi',
     ],
     hookspath=[],
     hooksconfig={},

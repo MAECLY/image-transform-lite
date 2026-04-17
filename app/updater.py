@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import ssl
 import subprocess
 import tempfile
 import urllib.error
@@ -35,6 +36,26 @@ def _find_zip_asset(assets: list) -> str:
     return ""
 
 
+def _get_ssl_context() -> ssl.SSLContext:
+    ctx = ssl.create_default_context()
+    try:
+        import certifi
+
+        cafile = certifi.where()
+        if os.path.isfile(cafile):
+            ctx.load_verify_locations(cafile)
+            return ctx
+    except Exception:
+        pass
+    default_ca = ssl.get_default_verify_paths().cafile
+    if default_ca and os.path.isfile(default_ca):
+        return ctx
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    log.warning("No CA certificates found; SSL verification disabled")
+    return ctx
+
+
 def check_for_updates(current_version: str, skip_version: str = "") -> dict:
     try:
         req = urllib.request.Request(
@@ -44,7 +65,9 @@ def check_for_updates(current_version: str, skip_version: str = "") -> dict:
                 "User-Agent": "ImageTransformLite",
             },
         )
-        with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
+        with urllib.request.urlopen(
+            req, timeout=TIMEOUT_SECONDS, context=_get_ssl_context()
+        ) as resp:
             data = json.loads(resp.read().decode("utf-8"))
 
         tag = data.get("tag_name", "")
@@ -96,7 +119,7 @@ def download_update(download_url: str, on_progress=None) -> str:
         headers={"User-Agent": "ImageTransformLite"},
     )
 
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    with urllib.request.urlopen(req, timeout=30, context=_get_ssl_context()) as resp:
         total = resp.headers.get("Content-Length")
         total = int(total) if total else None
         downloaded = 0
