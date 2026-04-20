@@ -3,6 +3,12 @@
 Todos los cambios notables de este proyecto se documentan aqui.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.3.4] - 2026-04-20
+
+### Fixed
+- La verificacion automatica de actualizaciones al iniciar fallaba silenciosamente: ahora muestra un toast con el error especifico (HTTP, red, etc.)
+- Error en el check de actualizaciones al inicio ya no se ignora: el usuario recibe feedback claro de que algo fallo
+
 ## [1.3.3] - 2026-04-17
 
 ### Fixed

@@ -129,14 +129,18 @@ async function checkForUpdates() {
         updateCheckPolling = null;
         if (result.update_available) {
           showUpdateBanner(result);
+        } else if (result.error) {
+          toast.show("No se pudo verificar actualizaciones al iniciar: " + result.error, "error");
         }
       } catch (e) {
         clearInterval(updateCheckPolling);
         updateCheckPolling = null;
+        toast.show("Error al verificar actualizaciones al inicio.", "error");
       }
     }, 300);
   } catch (e) {
     console.error("Auto update check failed:", e);
+    toast.show("Error al iniciar la verificacion de actualizaciones.", "error");
   }
 }
 
