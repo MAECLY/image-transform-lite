@@ -77,31 +77,26 @@ def get_preview_base64(image_path: Path, config: AppConfig) -> str:
     """Processes a single image and returns it as a base64 encoded string."""
     img = load_image(image_path)
     img = apply_transforms(img, config)
-    
+
     # Convert to RGB for consistent base64 WebP output
     if img.mode == "RGBA":
         img = img.convert("RGB")
     elif img.mode not in ("RGB", "L"):
         img = img.convert("RGB")
-        
+
     buffered = io.BytesIO()
-    img.save(buffered, format="WEBP", quality=80) # Lower quality for faster preview
+    img.save(buffered, format="WEBP", quality=80)  # Lower quality for faster preview
     img_str = base64.b64encode(buffered.getvalue()).decode()
     return f"data:image/webp;base64,{img_str}"
 
 
 def save_image(img: Image.Image, path: Path, fmt: str, quality: int = 90) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Map format to Pillow format names
-    format_map = {
-        "webp": "WEBP",
-        "jpeg": "JPEG",
-        "png": "PNG",
-        "tiff": "TIFF"
-    }
+    format_map = {"webp": "WEBP", "jpeg": "JPEG", "png": "PNG", "tiff": "TIFF"}
     pillow_fmt = format_map.get(fmt.lower(), "WEBP")
-    
+
     if pillow_fmt == "JPEG":
         if img.mode != "RGB":
             img = img.convert("RGB")
@@ -115,16 +110,12 @@ def save_image(img: Image.Image, path: Path, fmt: str, quality: int = 90) -> Non
             img = img.convert("RGB")
 
     # Save using the determined format
-    img.save(str(path), format=pillow_fmt, quality=quality, method=6 if pillow_fmt == "WEBP" else None)
-
-
-# Removed save_webp as it's replaced by save_image
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if img.mode == "RGBA":
-        img = img.convert("RGB")
-    elif img.mode not in ("RGB", "L"):
-        img = img.convert("RGB")
-    img.save(str(path), format="WEBP", quality=quality, method=6)
+    img.save(
+        str(path),
+        format=pillow_fmt,
+        quality=quality,
+        method=6 if pillow_fmt == "WEBP" else None,
+    )
 
 
 class BatchProcessor:
@@ -165,16 +156,13 @@ class BatchProcessor:
 
         for i, file_path in enumerate(files):
             rel = file_path.relative_to(input_dir)
-            
+
             # Determine output filename based on chosen format
             fmt = self.config.output_format.lower()
-            ext = {
-                "webp": ".webp",
-                "jpeg": ".jpg",
-                "png": ".png",
-                "tiff": ".tiff"
-            }.get(fmt, ".webp")
-            
+            ext = {"webp": ".webp", "jpeg": ".jpg", "png": ".png", "tiff": ".tiff"}.get(
+                fmt, ".webp"
+            )
+
             out_path = output_dir / rel.with_suffix(ext)
             self.current = i + 1
             self.current_file = str(rel)
@@ -182,7 +170,9 @@ class BatchProcessor:
             try:
                 img = load_image(file_path)
                 img = apply_transforms(img, self.config)
-                save_image(img, out_path, self.config.output_format, self.config.output_quality)
+                save_image(
+                    img, out_path, self.config.output_format, self.config.output_quality
+                )
             except Exception as e:
                 log.error("Error processing %s: %s", rel, e)
                 self.errors.append({"file": str(rel), "error": str(e)})
