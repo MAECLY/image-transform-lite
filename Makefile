@@ -62,7 +62,8 @@ release: dist ## Crea tag y push para triggear release en GitHub Actions
 	echo "Tag v$$VERSION pushed. GitHub Actions creara el release automaticamente."
 
 clean: ## Limpia archivos de build
-	rm -rf build/ dist/ *.spec.bak __pycache__ .pytest_cache
+	@chmod -R u+w dist/ 2>/dev/null || true
+	rm -rf build/ dist/ *.spec.bak __pycache__ .pytest_cache 2>/dev/null || true
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
 clean-all: clean ## Limpia todo incluyendo el venv
