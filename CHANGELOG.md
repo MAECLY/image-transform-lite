@@ -3,6 +3,12 @@
 Todos los cambios notables de este proyecto se documentan aqui.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.5.1] - 2026-04-27
+
+### Fixed
+
+- Transformaciones nuevas (watermark) no aparecian para usuarios existentes con config.json viejo. `from_dict()` ahora auto-agrega transforms faltantes a `transform_order`.
+
 ## [1.5.0] - 2026-04-27
 
 ### Added
