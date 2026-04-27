@@ -65,8 +65,16 @@ class TestAppConfig:
             "resize",
             "brightness",
             "contrast",
+            "watermark",
         ]
         cfg = AppConfig(transform_order=order)
         d = cfg.to_dict()
         cfg2 = AppConfig.from_dict(d)
         assert cfg2.transform_order == order
+
+    def test_transform_order_auto_adds_new(self):
+        old_order = ["flip", "rotate", "crop", "resize", "brightness", "contrast", "sharpness"]
+        cfg = AppConfig.from_dict({"transform_order": old_order})
+        assert "watermark" in cfg.transform_order
+        for name in old_order:
+            assert name in cfg.transform_order

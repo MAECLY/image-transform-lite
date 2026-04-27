@@ -104,7 +104,12 @@ class AppConfig:
     def from_dict(cls, data: dict) -> "AppConfig":
         valid_fields = {f.name for f in cls.__dataclass_fields__.values()}
         filtered = {k: v for k, v in data.items() if k in valid_fields}
-        return cls(**filtered)
+        cfg = cls(**filtered)
+        existing = set(cfg.transform_order)
+        for name in DEFAULT_ORDER:
+            if name not in existing:
+                cfg.transform_order.append(name)
+        return cfg
 
     def resolve_input_dir(self) -> Path:
         p = Path(self.input_dir)
