@@ -22,7 +22,7 @@ macOS desktop app for batch image transforms. Python 3.11 backend + HTML/CSS/JS 
 
 - **main.py** — Entry point. Creates pywebview window pointing at `ui/index.html`, exposes `Api` to JS via `js_api`. Handles frozen (PyInstaller) vs dev path resolution.
 - **config.py** — `AppConfig` dataclass with all transform parameters + execution order. Persists to JSON: `./config.json` in dev, `~/Library/Application Support/ImageTransformLite/config.json` in bundled app. Auto-saves on every UI change.
-- **transforms.py** — 7 independent transform functions (flip, rotate, safe_square_crop, resize, brightness, contrast, sharpness) using Pillow. Each takes an `Image` and returns an `Image`.
+- **transforms.py** — 8 independent transform functions (flip, rotate, safe_square_crop, resize, brightness, contrast, sharpness, watermark) using Pillow. Each takes an `Image` and returns an `Image`.
 - **processor.py** — `BatchProcessor` runs in a daemon thread. Discovers images recursively in input dir, applies transforms in `config.transform_order` (skipping disabled ones), saves as WebP. Frontend polls `progress()` for status.
 - **api.py** — Methods exposed to JS: `get_config`, `save_config`, `process_images`, `get_progress`, `select_input_directory`, `select_output_directory`, `open_output_directory`, `reset_config`.
 

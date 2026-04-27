@@ -15,6 +15,7 @@ from app.transforms import (
     adjust_brightness,
     adjust_contrast,
     adjust_sharpness,
+    watermark_image,
 )
 
 log = logging.getLogger("processor")
@@ -70,6 +71,14 @@ def apply_transforms(img: Image.Image, config: AppConfig) -> Image.Image:
             img = adjust_contrast(img, config.contrast_factor)
         elif name == "sharpness" and config.sharpness_enabled:
             img = adjust_sharpness(img, config.sharpness_factor)
+        elif name == "watermark" and config.watermark_enabled:
+            img = watermark_image(
+                img,
+                text=config.watermark_text,
+                font_size=config.watermark_font_size,
+                opacity=config.watermark_opacity,
+                position=config.watermark_position,
+            )
     return img
 
 

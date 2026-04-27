@@ -3,6 +3,20 @@
 Todos los cambios notables de este proyecto se documentan aqui.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.5.0] - 2026-04-27
+
+### Added
+
+- **Watermark transform**: nueva transformacion para anadir texto como marca de agua. Configurable: texto, tamano de fuente, opacidad y posicion (4 esquinas + centro).
+- **Tests para `processor.py`**: 29 tests nuevos cubriendo `discover_images()`, `load_image()`, `apply_transforms()`, `save_image()` y `BatchProcessor`.
+- **Tests mejorados para transforms**: anadidos tests de contraste (valor real cambia) y 5 tests de watermark.
+
+### Changed
+
+- `DEFAULT_ORDER` ahora incluye `"watermark"` como ultima transformacion en la cadena.
+- `transforms.py` importa `ImageDraw` e `ImageFont` para soporte de watermark.
+- Total de tests: de 42 a 77 (+35 tests).
+
 ## [1.4.0] - 2026-04-27
 
 ### Added

@@ -1,4 +1,4 @@
-from PIL import Image, ImageOps, ImageEnhance
+from PIL import Image, ImageOps, ImageEnhance, ImageDraw, ImageFont
 
 
 def flip_image(img: Image.Image, direction: str) -> Image.Image:
@@ -103,3 +103,46 @@ def adjust_sharpness(img: Image.Image, factor: float) -> Image.Image:
         return img
     rgb = img.convert("RGB") if img.mode != "RGB" else img
     return ImageEnhance.Sharpness(rgb).enhance(factor)
+
+
+def watermark_image(
+    img: Image.Image,
+    text: str = "",
+    font_size: int = 32,
+    opacity: int = 128,
+    position: str = "bottom-right",
+) -> Image.Image:
+    if not text:
+        return img
+
+    base = img.convert("RGBA")
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+    except (OSError, IOError):
+        try:
+            font = ImageFont.truetype("/Library/Fonts/Arial.ttf", font_size)
+        except (OSError, IOError):
+            try:
+                font = ImageFont.truetype(size=font_size)
+            except Exception:
+                font = ImageFont.load_default()
+
+    bbox = draw.textbbox((0, 0), text, font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    padding = max(font_size // 3, 10)
+
+    positions = {
+        "top-left": (padding, padding),
+        "top-right": (base.width - tw - padding, padding),
+        "bottom-left": (padding, base.height - th - padding),
+        "bottom-right": (base.width - tw - padding, base.height - th - padding),
+        "center": ((base.width - tw) // 2, (base.height - th) // 2),
+    }
+
+    xy = positions.get(position, positions["bottom-right"])
+    draw.text(xy, text, font=font, fill=(255, 255, 255, opacity))
+
+    return Image.alpha_composite(base, overlay)

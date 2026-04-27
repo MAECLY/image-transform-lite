@@ -12,6 +12,7 @@ DEFAULT_ORDER = [
     "brightness",
     "contrast",
     "sharpness",
+    "watermark",
 ]
 
 
@@ -47,6 +48,13 @@ class AppConfig:
     # Sharpness
     sharpness_enabled: bool = False
     sharpness_factor: float = 1.0
+
+    # Watermark
+    watermark_enabled: bool = False
+    watermark_text: str = ""
+    watermark_font_size: int = 32
+    watermark_opacity: int = 128
+    watermark_position: str = "bottom-right"
 
     # Transform execution order
     transform_order: list = field(default_factory=lambda: list(DEFAULT_ORDER))

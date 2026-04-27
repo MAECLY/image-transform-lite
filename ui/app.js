@@ -82,6 +82,28 @@ const TRANSFORMS = {
             <span class="range-val">${Number(cfg.sharpness_factor).toFixed(2)}</span>
         `,
   },
+  watermark: {
+    title: "Watermark",
+    desc: "Añade texto como marca de agua",
+    enabledKey: "watermark_enabled",
+    params: (cfg) => `
+            <label>Texto:</label>
+            <input type="text" data-key="watermark_text" value="${cfg.watermark_text}" style="width:120px" placeholder="Marca de agua">
+            <label>Tamaño:</label>
+            <input type="number" data-key="watermark_font_size" value="${cfg.watermark_font_size}" min="8" max="200" style="width:60px">
+            <label>Opacidad:</label>
+            <input type="range" data-key="watermark_opacity" min="10" max="255" step="5" value="${cfg.watermark_opacity}">
+            <span class="range-val">${cfg.watermark_opacity}</span>
+            <label>Posición:</label>
+            <select data-key="watermark_position">
+                <option value="bottom-right" ${cfg.watermark_position === "bottom-right" ? "selected" : ""}>Inf. Der.</option>
+                <option value="bottom-left" ${cfg.watermark_position === "bottom-left" ? "selected" : ""}>Inf. Izq.</option>
+                <option value="top-right" ${cfg.watermark_position === "top-right" ? "selected" : ""}>Sup. Der.</option>
+                <option value="top-left" ${cfg.watermark_position === "top-left" ? "selected" : ""}>Sup. Izq.</option>
+                <option value="center" ${cfg.watermark_position === "center" ? "selected" : ""}>Centro</option>
+            </select>
+        `,
+  },
 };
 
 let config = {};

@@ -9,6 +9,7 @@ from app.transforms import (
     adjust_brightness,
     adjust_contrast,
     adjust_sharpness,
+    watermark_image,
 )
 
 
@@ -113,7 +114,43 @@ class TestEnhancements:
         result = adjust_contrast(img, 1.0)
         assert result.size == img.size
 
+    def test_contrast_higher(self):
+        img = _make_rgb(10, 10, (80, 150, 200))
+        result = adjust_contrast(img, 2.0)
+        r, g, b = result.getpixel((5, 5))
+        assert r != 80 or g != 150 or b != 200
+
     def test_sharpness_noop(self):
         img = _make_rgb()
         result = adjust_sharpness(img, 1.0)
         assert result.size == img.size
+
+
+class TestWatermark:
+    def test_empty_text_noop(self):
+        img = _make_rgb()
+        result = watermark_image(img, text="")
+        assert result.size == img.size
+
+    def test_adds_text_returns_rgba(self):
+        img = _make_rgb()
+        result = watermark_image(img, text="TEST", font_size=16, opacity=128)
+        assert result.mode == "RGBA"
+        assert result.size == img.size
+
+    def test_different_opacity(self):
+        img = _make_rgb(200, 200)
+        low = watermark_image(img, text="HI", font_size=16, opacity=50)
+        high = watermark_image(img, text="HI", font_size=16, opacity=200)
+        assert low.tobytes() != high.tobytes()
+
+    def test_all_positions(self):
+        img = _make_rgb(200, 200)
+        for pos in ("top-left", "top-right", "bottom-left", "bottom-right", "center"):
+            result = watermark_image(img, text="X", font_size=16, position=pos)
+            assert result.size == img.size
+
+    def test_rgba_input(self):
+        img = _make_rgba(100, 100)
+        result = watermark_image(img, text="WM", font_size=16)
+        assert result.mode == "RGBA"
