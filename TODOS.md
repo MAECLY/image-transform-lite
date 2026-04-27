@@ -17,6 +17,9 @@
 - [x] **Live Preview Window**: Add a "Before/After" sample image that updates in real-time as sliders change.
 - [x] **Output Format Expansion**: Support JPEG, PNG, TIFF (Remove WebP-only restriction).
 - [x] **Preset System**: Save/Load transformation chains as JSON (Recetas).
+- [x] **Collapsible Sidebar**: Sidebar is now collapsible with icon-only mode. State persists via localStorage.
+- [x] **Lucide Icons**: All inline SVGs replaced with Lucide icon library for consistency and maintainability.
+- [x] **Sidebar Tooltips**: Hovering icons in collapsed sidebar shows contextual tooltip to the right.
 - [ ] **Advanced Logging**: Per-image success/failure reports.
 
 ## 🟠 Phase 3: Apple Silicon Performance (The Differentiators)

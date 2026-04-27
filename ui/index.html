@@ -9,23 +9,27 @@
 <body>
         <div class="app-container">
             <div class="sidebar">
+                <button id="sidebar-toggle" class="sidebar-toggle" title="Colapsar sidebar" data-sidebar-tooltip="Colapsar sidebar">
+                    <i data-lucide="panel-left-close" class="toggle-icon-collapse" width="16" height="16"></i>
+                    <i data-lucide="panel-left-open" class="toggle-icon-expand" width="16" height="16"></i>
+                </button>
                 <div class="sidebar-section">
                     <h2 class="sidebar-title">Mis Recetas</h2>
                     <div id="presets-list" class="presets-list">
                         <!-- Presets injected by JS -->
                     </div>
                     <div class="presets-actions">
-                        <button id="btn-add-preset" class="btn-preset-act" title="Nueva Receta">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Nueva
+                        <button id="btn-add-preset" class="btn-preset-act" title="Nueva Receta" data-sidebar-tooltip="Nueva Receta">
+                            <i data-lucide="plus" width="14" height="14"></i>
+                            <span class="btn-label">Nueva</span>
                         </button>
-                        <button id="menu-load-preset" class="btn-preset-act" title="Importar Preset JSON">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                            Importar
+                        <button id="menu-load-preset" class="btn-preset-act" title="Importar Preset JSON" data-sidebar-tooltip="Importar">
+                            <i data-lucide="download" width="14" height="14"></i>
+                            <span class="btn-label">Importar</span>
                         </button>
-                        <button id="menu-save-preset" class="btn-preset-act" title="Exportar Preset JSON">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                            Exportar
+                        <button id="menu-save-preset" class="btn-preset-act" title="Exportar Preset JSON" data-sidebar-tooltip="Exportar">
+                            <i data-lucide="upload" width="14" height="14"></i>
+                            <span class="btn-label">Exportar</span>
                         </button>
                     </div>
                 </div>
@@ -33,9 +37,18 @@
                 <div class="sidebar-section">
                     <h2 class="sidebar-title">Configuración</h2>
                     <div class="sidebar-menu">
-                        <button id="btn-reset" class="btn-preset-action">Restablecer Todo</button>
-                        <button id="menu-check-updates" class="btn-preset-action">Buscar Actualizaciones</button>
-                        <button id="menu-about" class="btn-preset-action">Acerca de</button>
+                        <button id="btn-reset" class="btn-preset-action" data-sidebar-tooltip="Restablecer Todo">
+                            <i data-lucide="rotate-ccw" width="16" height="16"></i>
+                            <span class="btn-label">Restablecer Todo</span>
+                        </button>
+                        <button id="menu-check-updates" class="btn-preset-action" data-sidebar-tooltip="Buscar Actualizaciones">
+                            <i data-lucide="refresh-cw" width="16" height="16"></i>
+                            <span class="btn-label">Buscar Actualizaciones</span>
+                        </button>
+                        <button id="menu-about" class="btn-preset-action" data-sidebar-tooltip="Acerca de">
+                            <i data-lucide="info" width="16" height="16"></i>
+                            <span class="btn-label">Acerca de</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -157,11 +170,7 @@
     <div id="update-progress-overlay" class="modal-overlay" style="display:none;">
         <div class="modal update-progress-content">
             <div class="update-icon">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
+                <i data-lucide="download" width="40" height="40" stroke="var(--accent)" stroke-width="2"></i>
             </div>
             <div class="update-title">Descargando actualización</div>
             <div class="progress-bar-container" style="margin:16px 0;">
@@ -175,6 +184,7 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="lib/Sortable.min.js"></script>
+    <script src="lib/lucide.min.js"></script>
     <script src="toast.js"></script>
     <script src="app.js"></script>
 </body>

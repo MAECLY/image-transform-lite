@@ -33,7 +33,6 @@ body {
     gap: 20px;
     height: 100vh;
     padding: 16px 20px;
-    overflow: hidden;
 }
 
 .sidebar {
@@ -44,6 +43,161 @@ body {
     gap: 12px;
     height: 100%;
     overflow-y: auto;
+    transition: width 0.25s ease;
+}
+
+.sidebar-toggle {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    align-self: flex-end;
+    margin-bottom: -4px;
+}
+
+.sidebar-toggle:hover {
+    background: var(--bg);
+    color: var(--text);
+}
+
+.toggle-icon-expand {
+    display: none;
+}
+
+.app-container.sidebar-collapsed .toggle-icon-collapse {
+    display: none;
+}
+
+.app-container.sidebar-collapsed .toggle-icon-expand {
+    display: inline-flex;
+}
+
+.app-container.sidebar-collapsed .sidebar {
+    width: 48px;
+    overflow: visible;
+}
+
+.app-container.sidebar-collapsed .sidebar-section {
+    padding: 10px 8px;
+}
+
+.app-container.sidebar-collapsed .sidebar-title {
+    opacity: 0;
+    height: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+.app-container.sidebar-collapsed .presets-list {
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.app-container.sidebar-collapsed .preset-item {
+    padding: 0;
+    justify-content: center;
+    max-width: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.app-container.sidebar-collapsed .preset-initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-container.sidebar-collapsed .preset-name,
+.app-container.sidebar-collapsed .btn-del-preset {
+    display: none;
+}
+
+.app-container.sidebar-collapsed .presets-actions {
+    flex-direction: column;
+    align-items: center;
+}
+
+.app-container.sidebar-collapsed .btn-preset-act {
+    padding: 6px;
+    justify-content: center;
+    min-width: 32px;
+}
+
+.app-container.sidebar-collapsed .btn-label {
+    display: none;
+}
+
+.app-container.sidebar-collapsed .sidebar-menu {
+    gap: 8px;
+}
+
+.app-container.sidebar-collapsed .btn-preset-action {
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+}
+
+.app-container.sidebar-collapsed .sidebar-toggle {
+    align-self: center;
+}
+
+/* Sidebar tooltip — only visible when sidebar is collapsed */
+.app-container.sidebar-collapsed [data-sidebar-tooltip] {
+    position: relative;
+}
+
+.app-container.sidebar-collapsed [data-sidebar-tooltip]::after {
+    content: attr(data-sidebar-tooltip);
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--text);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.app-container.sidebar-collapsed [data-sidebar-tooltip]:hover::after {
+    opacity: 1;
+}
+
+.app-container.sidebar-collapsed [data-sidebar-tooltip]::before {
+    content: '';
+    position: absolute;
+    left: calc(100% + 3px);
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-right-color: var(--text);
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.app-container.sidebar-collapsed [data-sidebar-tooltip]:hover::before {
+    opacity: 1;
 }
 
 .sidebar-section {
@@ -92,6 +246,10 @@ body {
     max-width: 130px;
 }
 
+.preset-initial {
+    display: none;
+}
+
 .preset-item:hover {
     background: var(--accent);
     color: white;
@@ -103,8 +261,7 @@ body {
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 12px;
-    padding: 0 2px;
+    padding: 0;
     line-height: 1;
     border-radius: 50%;
     width: 16px;
@@ -174,12 +331,19 @@ body {
     cursor: pointer;
     color: var(--text);
     transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .btn-preset-action:hover {
     background: var(--accent);
     color: white;
     border-color: var(--accent);
+}
+
+.btn-preset-action:hover svg {
+    stroke: white;
 }
 
 .main-content {
@@ -802,6 +966,9 @@ body {
 
 .update-icon {
     margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .update-title {

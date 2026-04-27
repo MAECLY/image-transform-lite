@@ -94,6 +94,32 @@ let updateDownloadPolling = null;
 let updateCheckPolling = null;
 let updateCheckBusy = false;
 
+// Sidebar toggle
+function initSidebar() {
+  const container = document.querySelector(".app-container");
+  const toggle = document.getElementById("sidebar-toggle");
+  const collapsed = localStorage.getItem("sidebar_collapsed") === "true";
+  if (collapsed) {
+    container.classList.add("sidebar-collapsed");
+  }
+  const updateToggleTooltip = (isCollapsed) => {
+    const label = isCollapsed ? "Expandir sidebar" : "Colapsar sidebar";
+    toggle.title = label;
+    toggle.setAttribute("data-sidebar-tooltip", label);
+  };
+  updateToggleTooltip(collapsed);
+  toggle.addEventListener("click", () => {
+    container.classList.toggle("sidebar-collapsed");
+    const isCollapsed = container.classList.contains("sidebar-collapsed");
+    localStorage.setItem("sidebar_collapsed", isCollapsed);
+    updateToggleTooltip(isCollapsed);
+  });
+}
+
+initSidebar();
+
+lucide.createIcons();
+
 // Wait for pywebview API
 window.addEventListener("pywebviewready", init);
 
@@ -130,7 +156,10 @@ async function checkForUpdates() {
         if (result.update_available) {
           showUpdateBanner(result);
         } else if (result.error) {
-          toast.show("No se pudo verificar actualizaciones al iniciar: " + result.error, "error");
+          toast.show(
+            "No se pudo verificar actualizaciones al iniciar: " + result.error,
+            "error",
+          );
         }
       } catch (e) {
         clearInterval(updateCheckPolling);
@@ -201,10 +230,13 @@ async function renderPresets() {
     for (const name of presets) {
       const item = document.createElement("div");
       item.className = "preset-item";
+      const initial = name.charAt(0).toUpperCase();
       item.innerHTML = `
+                <span class="preset-initial">${initial}</span>
                 <span class="preset-name">${name}</span>
-                <button class="btn-del-preset" title="Eliminar preset">×</button>
+                <button class="btn-del-preset" title="Eliminar preset"><i data-lucide="x" width="12" height="12"></i></button>
             `;
+      item.setAttribute("data-sidebar-tooltip", name);
 
       item.addEventListener("click", async (e) => {
         if (e.target.classList.contains("btn-del-preset")) {
@@ -233,6 +265,7 @@ async function renderPresets() {
   } catch (e) {
     console.error("Presets render error:", e);
   }
+  lucide.createIcons();
 }
 
 function debouncedPreview() {
@@ -500,6 +533,7 @@ document.getElementById("update-link").addEventListener("click", (e) => {
 function showModal(html) {
   document.getElementById("modal-body").innerHTML = html;
   document.getElementById("modal-overlay").style.display = "flex";
+  lucide.createIcons();
 }
 
 function hideModal() {
@@ -523,10 +557,7 @@ function showUpdateModal(data) {
   const html = `
     <div class="update-modal">
       <div class="update-icon">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 0117.778-7.778z"/>
-          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 0117.778-7.778z" transform="translate(0,0)"/>
-        </svg>
+        <i data-lucide="download" width="40" height="40" stroke="var(--accent)" stroke-width="2"></i>
       </div>
       <div class="update-title">Nueva versi\u00f3n ${data.latestVersion} disponible</div>
       <div class="update-current">Versi\u00f3n actual: ${currentVersion}</div>
@@ -540,21 +571,28 @@ function showUpdateModal(data) {
   `;
   showModal(html);
 
-  document.getElementById("btn-update-download").addEventListener("click", () => {
-    hideModal();
-    if (data.downloadUrl) {
-      startUpdateDownload(data.downloadUrl);
-    } else {
-      window.open(data.releaseUrl, "_blank");
-    }
-  });
+  document
+    .getElementById("btn-update-download")
+    .addEventListener("click", () => {
+      hideModal();
+      if (data.downloadUrl) {
+        startUpdateDownload(data.downloadUrl);
+      } else {
+        window.open(data.releaseUrl, "_blank");
+      }
+    });
 
-  document.getElementById("btn-update-skip").addEventListener("click", async () => {
-    await pywebview.api.skip_update(data.latestVersion);
-    document.getElementById("update-banner").style.display = "none";
-    hideModal();
-    toast.show("Se omiti\u00f3 la versi\u00f3n " + data.latestVersion, "info");
-  });
+  document
+    .getElementById("btn-update-skip")
+    .addEventListener("click", async () => {
+      await pywebview.api.skip_update(data.latestVersion);
+      document.getElementById("update-banner").style.display = "none";
+      hideModal();
+      toast.show(
+        "Se omiti\u00f3 la versi\u00f3n " + data.latestVersion,
+        "info",
+      );
+    });
 }
 
 function simpleMarkdown(text) {
@@ -573,7 +611,8 @@ async function startUpdateDownload(downloadUrl) {
   const overlay = document.getElementById("update-progress-overlay");
   overlay.style.display = "flex";
   document.getElementById("update-progress-bar").style.width = "0%";
-  document.getElementById("update-progress-text").textContent = "Descargando...";
+  document.getElementById("update-progress-text").textContent =
+    "Descargando...";
 
   try {
     await pywebview.api.start_update_download(downloadUrl);
@@ -626,9 +665,11 @@ function showUpdateInstructions() {
     </div>
   `;
 
-  document.getElementById("btn-reveal-update").addEventListener("click", async () => {
-    await pywebview.api.reveal_update();
-  });
+  document
+    .getElementById("btn-reveal-update")
+    .addEventListener("click", async () => {
+      await pywebview.api.reveal_update();
+    });
   document.getElementById("btn-close-update").addEventListener("click", () => {
     overlay.style.display = "none";
     document.getElementById("update-banner").style.display = "none";
@@ -701,8 +742,8 @@ document.getElementById("menu-about").addEventListener("click", async () => {
     const version = await pywebview.api.get_version();
     showModal(
       `<strong>Image Transform Lite</strong><br>Version ${version}<br><br>` +
-      `<span style="font-size:12px;color:var(--text-secondary)">macOS Apple Silicon</span><br><br>` +
-      `<span style="font-size:13px;">Hecho por <a href="https://maecly.com/" target="_blank" style="color:var(--accent);text-decoration:none;">MigelAngelEC</a></span>`,
+        `<span style="font-size:12px;color:var(--text-secondary)">macOS Apple Silicon</span><br><br>` +
+        `<span style="font-size:13px;">Hecho por <a href="https://maecly.com/" target="_blank" style="color:var(--accent);text-decoration:none;">MigelAngelEC</a></span>`,
     );
   } catch (e) {
     showModal("<strong>Image Transform Lite</strong>");
