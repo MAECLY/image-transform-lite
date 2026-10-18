@@ -68,7 +68,7 @@ La app verifica actualizaciones automaticamente al iniciar:
 
 ### Opcion 1: Usar el .app directamente
 
-1. Descargar `Image Transform Lite.zip` desde [Releases](https://github.com/miguel50flowers/fe-image-transform-lite/releases)
+1. Descargar `Image Transform Lite.zip` desde [Releases](https://github.com/MAECLY/image-transform-lite/releases)
 2. Descomprimir
 3. Mover `Image Transform Lite.app` a `/Applications`
 4. Doble click en `Image Transform Lite.app`
@@ -87,8 +87,8 @@ La app verifica actualizaciones automaticamente al iniciar:
 **Requisitos:** Python 3.11 (`brew install python@3.11`)
 
 ```bash
-git clone https://github.com/miguel50flowers/fe-image-transform-lite.git
-cd fe-image-transform-lite
+git clone https://github.com/MAECLY/image-transform-lite.git
+cd image-transform-lite
 make run
 ```
 

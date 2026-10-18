@@ -9,7 +9,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-GITHUB_API_URL = "https://api.github.com/repos/miguel50flowers/fe-image-transform-lite/releases/latest"
+GITHUB_API_URL = "https://api.github.com/repos/MAECLY/image-transform-lite/releases/latest"
 TIMEOUT_SECONDS = 5
 
 log = logging.getLogger(__name__)
