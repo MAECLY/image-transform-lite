@@ -64,5 +64,5 @@ Input/output directory structure is mirrored: `input_files/subfolder/img.jpg` â†
 
 - Uses Python 3.11 (`/opt/homebrew/opt/python@3.11/bin/python3.11`) for PyInstaller compatibility
 - Target: arm64 macOS only
-- Bundle ID: `com.fiftyflowers.imagetransformlite`
+- Bundle ID: `com.maecly.imagetransformlite`
 - Recipients bypass Gatekeeper with right-click â†’ Open on first launch

@@ -74,7 +74,7 @@ app = BUNDLE(
     coll,
     name='Image Transform Lite.app',
     icon='assets/icon.icns',
-    bundle_identifier='com.fiftyflowers.imagetransformlite',
+    bundle_identifier='com.maecly.imagetransformlite',
     info_plist={
         'CFBundleShortVersionString': _app_version,
         'CFBundleName': 'Image Transform Lite',

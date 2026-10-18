@@ -60,7 +60,7 @@ jobs:
           # Build the .pkg
           pkgbuild \
             --root pkg-root \
-            --identifier com.fiftyflowers.imagetransformlite \
+            --identifier com.maecly.imagetransformlite \
             --version "$VERSION" \
             --install-location / \
             "dist/${PKG_NAME}"

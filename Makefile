@@ -43,7 +43,7 @@ pkg: build ## Construye el instalador .pkg
 	cp -R "$(DIST_APP)" "pkg-root/Applications/" && \
 	pkgbuild \
 		--root pkg-root \
-		--identifier com.fiftyflowers.imagetransformlite \
+		--identifier com.maecly.imagetransformlite \
 		--version "$$VERSION" \
 		--install-location / \
 		"dist/Image-Transform-Lite-$$VERSION-arm64.pkg" && \
