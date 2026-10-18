@@ -8,7 +8,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 ### Changed
 
 - **Licencia**: el proyecto pasa de MIT a [GNU AGPL-3.0](LICENSE), la misma licencia que Versorium, Coverly ROMs y Pluryprint. El código fuente ahora es público.
-- **Bundle ID**: `com.fiftyflowers.imagetransformlite` pasa a `com.maecly.imagetransformlite`. La configuración y los presets siguen en `~/Library/Application Support/ImageTransformLite`, así que no se pierden.
+- **Bundle ID**: ahora es `com.maecly.imagetransformlite`. La configuración y los presets siguen en `~/Library/Application Support/ImageTransformLite`, así que no se pierden.
 - README: instrucciones de instalación con el `.pkg` y enlace a la última versión.
 
 ## [1.5.1] - 2026-04-27
