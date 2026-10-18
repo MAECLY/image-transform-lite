@@ -2,7 +2,7 @@
 
 Aplicacion de escritorio para Mac que permite procesar imagenes en lote con transformaciones configurables, vista previa en tiempo real y actualizaciones automaticas.
 
-![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-black) ![Python](https://img.shields.io/badge/Python-3.11-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Version](https://img.shields.io/badge/version-1.3.3-blue)
+![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-black) ![Python](https://img.shields.io/badge/Python-3.11-blue) ![License](https://img.shields.io/badge/license-AGPL--3.0-0E5E6F) ![Version](https://img.shields.io/badge/version-1.6.0-blue)
 
 ## Caracteristicas
 
@@ -68,7 +68,7 @@ La app verifica actualizaciones automaticamente al iniciar:
 
 ### Opcion 1: Usar el .app directamente
 
-1. Descargar `Image Transform Lite.zip` desde [Releases](https://github.com/MAECLY/image-transform-lite/releases)
+1. Descargar `Image-Transform-Lite-<version>-arm64.pkg` (o el `.zip`) desde [Releases](https://github.com/MAECLY/image-transform-lite/releases/latest)
 2. Descomprimir
 3. Mover `Image Transform Lite.app` a `/Applications`
 4. Doble click en `Image Transform Lite.app`
@@ -159,4 +159,11 @@ Update check → GitHub API → modal with release notes → download → reveal
 
 ## Licencia
 
-MIT
+Copyright (C) 2026 Miguel Angel Esparza Calero
+
+Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo los
+términos de la [GNU Affero General Public License v3.0](LICENSE) publicada por la
+Free Software Foundation. Se distribuye sin ninguna garantía.
+
+Image Transform Lite es un producto de [MAECLY](https://maecly.com) ·
+[image-lite.maecly.com](https://image-lite.maecly.com).
