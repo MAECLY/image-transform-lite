@@ -3,6 +3,7 @@
 Aplicacion de escritorio para Mac que permite procesar imagenes en lote con transformaciones configurables, vista previa en tiempo real y actualizaciones automaticas.
 
 ![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-black) ![Python](https://img.shields.io/badge/Python-3.11-blue) ![License](https://img.shields.io/badge/license-AGPL--3.0-0E5E6F) ![Version](https://img.shields.io/badge/version-1.6.0-blue)
+[![Downloads](https://img.shields.io/github/downloads/MAECLY/image-transform-lite/total)](https://github.com/MAECLY/image-transform-lite/releases) [![Stars](https://img.shields.io/github/stars/MAECLY/image-transform-lite)](https://github.com/MAECLY/image-transform-lite/stargazers) [![Views](https://hits.sh/github.com/MAECLY/image-transform-lite.svg?label=views)](https://hits.sh/github.com/MAECLY/image-transform-lite/) [![Last commit](https://img.shields.io/github/last-commit/MAECLY/image-transform-lite)](https://github.com/MAECLY/image-transform-lite/commits/main)
 
 ## Caracteristicas
 
