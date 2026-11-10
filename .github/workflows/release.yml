@@ -104,6 +104,17 @@ jobs:
             libxkbfile1 libxshmfence1 libasound2 libdrm2 libgbm1 libcups2 \
             libevent-2.1-7 libminizip1 libxslt1.1 libsnappy1v5 libopus0 libwebpdemux2 libharfbuzz0b
 
+      - name: Install libwebp6 (linux-arm64)
+        if: matrix.target == 'linux-arm64'
+        # The aarch64 PyQt6-WebEngine wheel links libwebp.so.6, which Ubuntu
+        # 22.04 no longer ships. Take it from Ubuntu 20.04 (pinned by hash);
+        # PyInstaller then bundles it, so users don't need it installed.
+        run: |
+          DEB=libwebp6_0.6.1-2ubuntu0.20.04.3_arm64.deb
+          curl -fsSLO "http://ports.ubuntu.com/pool/main/libw/libwebp/$DEB"
+          echo "053fb0fae737303a7b1a502dfa07fe48a407656ccd7cfccb388116b7fa911d24  $DEB" | sha256sum -c -
+          sudo dpkg -i "$DEB"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
