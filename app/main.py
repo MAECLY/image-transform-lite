@@ -30,7 +30,15 @@ def main():
     # Give the api a reference to the window for file dialogs
     api.window = window
 
-    webview.start(debug="--debug" in sys.argv)
+    start_kwargs = {"debug": "--debug" in sys.argv}
+    if sys.platform.startswith("linux"):
+        # Linux builds ship the Qt (PyQt6 + WebEngine) backend.
+        start_kwargs["gui"] = "qt"
+        icon = get_resource_path() / "assets" / "icon.png"
+        if icon.exists():
+            start_kwargs["icon"] = str(icon)
+    # Windows: pywebview default (EdgeChromium); macOS: cocoa.
+    webview.start(**start_kwargs)
 
 
 if __name__ == "__main__":

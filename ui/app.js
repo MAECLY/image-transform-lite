@@ -668,21 +668,81 @@ async function startUpdateDownload(downloadUrl) {
   }
 }
 
-function showUpdateInstructions() {
+// Platform info (label, file manager name) — cached; degrades gracefully.
+const FALLBACK_PLATFORM = { os: "", arch: "", label: "", file_manager: "" };
+let platformInfoPromise = null;
+
+function getPlatformInfo() {
+  if (!platformInfoPromise) {
+    platformInfoPromise = (async () => {
+      try {
+        if (!window.pywebview || !pywebview.api || !pywebview.api.get_platform_info) {
+          return FALLBACK_PLATFORM;
+        }
+        const info = await pywebview.api.get_platform_info();
+        return info && typeof info === "object"
+          ? { ...FALLBACK_PLATFORM, ...info }
+          : FALLBACK_PLATFORM;
+      } catch (e) {
+        platformInfoPromise = null; // allow a retry later
+        return FALLBACK_PLATFORM;
+      }
+    })();
+  }
+  return platformInfoPromise;
+}
+
+function updateInstallSteps(info) {
+  const fm = info.file_manager || "el gestor de archivos";
+  switch (info.os) {
+    case "macos":
+      return [
+        `Haz clic en <strong>Abrir en ${fm}</strong>`,
+        "Arrastra <strong>Image Transform Lite.app</strong> a tu carpeta Aplicaciones (reemplaza la anterior)",
+        "Cierra esta aplicaci\u00f3n y abre la nueva versi\u00f3n",
+      ];
+    case "windows":
+      return [
+        `Haz clic en <strong>Abrir en ${fm}</strong>`,
+        "Cierra esta aplicaci\u00f3n",
+        "Reemplaza tu carpeta <strong>Image Transform Lite</strong> por la carpeta descargada",
+        "Abre <strong>Image Transform Lite.exe</strong> desde la nueva carpeta",
+      ];
+    case "linux":
+      return [
+        `Haz clic en <strong>Abrir en ${fm}</strong>`,
+        "Cierra esta aplicaci\u00f3n",
+        "Reemplaza tu carpeta <strong>image-transform-lite</strong> por la carpeta descargada",
+        "Ejecuta <strong>./install.sh</strong> dentro de la nueva carpeta para actualizar el acceso directo y abre la aplicaci\u00f3n",
+      ];
+    default:
+      return [
+        "Haz clic en <strong>Mostrar archivos</strong>",
+        "Reemplaza la versi\u00f3n instalada por la descargada",
+        "Cierra esta aplicaci\u00f3n y abre la nueva versi\u00f3n",
+      ];
+  }
+}
+
+async function showUpdateInstructions() {
   const overlay = document.getElementById("update-progress-overlay");
+  const info = await getPlatformInfo();
+  const knownOs = ["macos", "windows", "linux"].includes(info.os);
+  const revealLabel = knownOs && info.file_manager
+    ? `Abrir en ${info.file_manager}`
+    : "Mostrar archivos";
+  const steps = updateInstallSteps(info)
+    .map((s) => `<li>${s}</li>`)
+    .join("");
   overlay.querySelector(".update-progress-content").innerHTML = `
     <div class="update-success-icon">\u2713</div>
     <div class="update-title">Descarga completa</div>
     <div class="update-instructions">
       La nueva versi\u00f3n se ha descargado. Para completar la actualizaci\u00f3n:
     </div>
-    <ol class="update-steps">
-      <li>Haz clic en <strong>Abrir en Finder</strong></li>
-      <li>Arrastra <strong>Image Transform Lite.app</strong> a tu carpeta Aplicaciones</li>
-      <li>Cierra esta aplicaci\u00f3n y abre la nueva versi\u00f3n</li>
-    </ol>
+    <ol class="update-steps">${steps}</ol>
     <div class="update-actions">
-      <button id="btn-reveal-update" class="btn-primary">Abrir en Finder</button>
+      <button id="btn-reveal-update" class="btn-primary">${revealLabel}</button>
       <button id="btn-close-update" class="btn-cancel">Cerrar</button>
     </div>
   `;
@@ -690,7 +750,12 @@ function showUpdateInstructions() {
   document
     .getElementById("btn-reveal-update")
     .addEventListener("click", async () => {
-      await pywebview.api.reveal_update();
+      try {
+        const res = await pywebview.api.reveal_update();
+        if (res && res.error) toast.show(res.error, "error");
+      } catch (e) {
+        toast.show("No se pudo abrir la carpeta de la actualizaci\u00f3n.", "error");
+      }
     });
   document.getElementById("btn-close-update").addEventListener("click", () => {
     overlay.style.display = "none";
@@ -762,9 +827,13 @@ document
 document.getElementById("menu-about").addEventListener("click", async () => {
   try {
     const version = await pywebview.api.get_version();
+    const info = await getPlatformInfo();
+    const platformLine = info.label
+      ? `<span style="font-size:12px;color:var(--text-secondary)">${info.label}</span><br><br>`
+      : "";
     showModal(
       `<strong>Image Transform Lite</strong><br>Version ${version}<br><br>` +
-        `<span style="font-size:12px;color:var(--text-secondary)">macOS Apple Silicon</span><br><br>` +
+        platformLine +
         `<span style="font-size:13px;">Hecho por <a href="https://maecly.com/" target="_blank" style="color:var(--accent);text-decoration:none;">MigelAngelEC</a></span>`,
     );
   } catch (e) {

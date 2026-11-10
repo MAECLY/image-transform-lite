@@ -1,4 +1,51 @@
+import os
+import platform
+
 from PIL import Image, ImageOps, ImageEnhance, ImageDraw, ImageFont
+
+
+_FONT_CANDIDATES = {
+    "Darwin": [
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/Library/Fonts/Arial.ttf",
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+    ],
+    "Windows": [
+        os.path.join(os.environ.get("WINDIR", "C:/Windows"), "Fonts", "arial.ttf"),
+        os.path.join(os.environ.get("WINDIR", "C:/Windows"), "Fonts", "segoeui.ttf"),
+        "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/segoeui.ttf",
+    ],
+    "Linux": [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/liberation-sans/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/TTF/LiberationSans-Regular.ttf",
+    ],
+}
+
+
+def _font_candidates(system: str | None = None) -> list[str]:
+    system = system or platform.system()
+    return list(_FONT_CANDIDATES.get(system, _FONT_CANDIDATES["Linux"]))
+
+
+def load_watermark_font(font_size: int, system: str | None = None):
+    """Load a TrueType font for the current platform, falling back to Pillow's default."""
+    for path in _font_candidates(system):
+        try:
+            return ImageFont.truetype(path, font_size)
+        except (OSError, IOError, ValueError):
+            continue
+    try:
+        # Pillow >= 10.1 ships a scalable default font
+        return ImageFont.load_default(size=font_size)
+    except Exception:
+        return ImageFont.load_default()
 
 
 def flip_image(img: Image.Image, direction: str) -> Image.Image:
@@ -119,16 +166,7 @@ def watermark_image(
     overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
-    try:
-        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
-    except (OSError, IOError):
-        try:
-            font = ImageFont.truetype("/Library/Fonts/Arial.ttf", font_size)
-        except (OSError, IOError):
-            try:
-                font = ImageFont.truetype(size=font_size)
-            except Exception:
-                font = ImageFont.load_default()
+    font = load_watermark_font(font_size)
 
     bbox = draw.textbbox((0, 0), text, font=font)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]

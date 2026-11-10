@@ -1,7 +1,10 @@
 import json
+import os
 import sys
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
+
+from app.platform_utils import normalize_os, user_config_dir
 
 
 DEFAULT_ORDER = [
@@ -73,9 +76,7 @@ class AppConfig:
     @classmethod
     def _config_path(cls) -> Path:
         if getattr(sys, "frozen", False):
-            config_dir = (
-                Path.home() / "Library" / "Application Support" / "ImageTransformLite"
-            )
+            config_dir = user_config_dir()
             config_dir.mkdir(parents=True, exist_ok=True)
             return config_dir / "config.json"
         return Path(__file__).resolve().parent.parent / "config.json"
@@ -126,9 +127,7 @@ class AppConfig:
     @classmethod
     def get_presets_dir(cls) -> Path:
         if getattr(sys, "frozen", False):
-            config_dir = (
-                Path.home() / "Library" / "Application Support" / "ImageTransformLite"
-            )
+            config_dir = user_config_dir()
         else:
             config_dir = _app_base_dir()
 
@@ -138,6 +137,29 @@ class AppConfig:
 
 
 def _app_base_dir() -> Path:
+    """Base dir for the relative default input_files/output_files folders."""
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent.parent.parent.parent
+        exe = Path(sys.executable).resolve()
+        if normalize_os() == "macos":
+            # .../X/Image Transform Lite.app/Contents/MacOS/<exe> -> X
+            # (the folder containing the .app, unchanged since v1.0).
+            return exe.parent.parent.parent.parent
+        # Windows/Linux PyInstaller onedir: .../X/<app folder>/<exe>.
+        # Use X (the folder containing the app folder) so the layout mirrors
+        # macOS: input_files/output_files sit next to the app folder, where the
+        # user extracted the zip/tar.gz, and are not wiped when the app folder
+        # is replaced on update. If X is not writable (e.g. the app was moved
+        # into C:\Program Files or /opt), fall back to the user's home, which
+        # is always writable.
+        base = exe.parent.parent
+        if _is_writable_dir(base):
+            return base
+        return Path.home()
     return Path(__file__).resolve().parent.parent
+
+
+def _is_writable_dir(path: Path) -> bool:
+    try:
+        return path.is_dir() and os.access(path, os.W_OK)
+    except OSError:
+        return False

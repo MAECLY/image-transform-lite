@@ -1,5 +1,4 @@
 import logging
-import subprocess
 import io
 import base64
 import json
@@ -12,8 +11,9 @@ from app.updater import (
     check_for_updates as _check_updates,
     download_update as _download_update,
     extract_update as _extract_update,
-    reveal_in_finder as _reveal_in_finder,
+    reveal_in_file_manager as _reveal_in_file_manager,
 )
+from app.platform_utils import open_path, platform_info
 from app.version import __version__
 
 log = logging.getLogger(__name__)
@@ -163,10 +163,13 @@ class Api:
     def open_output_directory(self) -> None:
         out_dir = self.config.resolve_output_dir()
         out_dir.mkdir(parents=True, exist_ok=True)
-        subprocess.Popen(["open", str(out_dir)])
+        open_path(out_dir)
 
     def get_version(self) -> str:
         return __version__
+
+    def get_platform_info(self) -> dict:
+        return platform_info()
 
     def check_for_updates(self) -> dict:
         return _check_updates(__version__, skip_version=self.config.skip_version)
@@ -220,8 +223,8 @@ class Api:
                         "total": total,
                     }
 
-                zip_path = _download_update(download_url, on_progress=on_progress)
-                app_path = _extract_update(zip_path)
+                archive_path = _download_update(download_url, on_progress=on_progress)
+                app_path = _extract_update(archive_path)
                 self._downloaded_app_path = app_path
                 self._update_download_result = {"success": True, "app_path": app_path}
             except Exception as e:
@@ -245,7 +248,7 @@ class Api:
         app_path = self._downloaded_app_path
         if not app_path:
             return {"error": "No update downloaded"}
-        _reveal_in_finder(app_path)
+        _reveal_in_file_manager(app_path)
         return {"success": True}
 
     def reset_config(self) -> dict:

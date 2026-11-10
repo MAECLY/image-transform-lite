@@ -29,19 +29,21 @@ class TestCompareVersions:
 
 
 class TestFindZipAsset:
-    def test_prefers_arm64_zip(self):
+    @patch("app.updater.current_platform", return_value=("macos", "arm64"))
+    def test_prefers_platform_zip(self, _):
         assets = [
-            {"name": "app-1.0.0.zip", "browser_download_url": "https://dl/app.zip"},
+            {"name": "app-1.0.0-arm64.zip", "browser_download_url": "https://dl/legacy.zip"},
             {
-                "name": "app-1.0.0-arm64.zip",
-                "browser_download_url": "https://dl/app-arm64.zip",
+                "name": "app-1.0.0-macos-arm64.zip",
+                "browser_download_url": "https://dl/app-macos-arm64.zip",
             },
         ]
-        assert _find_zip_asset(assets) == "https://dl/app-arm64.zip"
+        assert _find_zip_asset(assets) == "https://dl/app-macos-arm64.zip"
 
-    def test_falls_back_to_any_zip(self):
+    @patch("app.updater.current_platform", return_value=("macos", "arm64"))
+    def test_falls_back_to_legacy_on_mac_arm64(self, _):
         assets = [
-            {"name": "app-1.0.0.zip", "browser_download_url": "https://dl/app.zip"},
+            {"name": "app-1.0.0-arm64.zip", "browser_download_url": "https://dl/app.zip"},
         ]
         assert _find_zip_asset(assets) == "https://dl/app.zip"
 
@@ -50,8 +52,9 @@ class TestFindZipAsset:
 
 
 class TestCheckForUpdates:
+    @patch("app.updater.current_platform", return_value=("macos", "arm64"))
     @patch("app.updater.urllib.request.urlopen")
-    def test_update_available_with_release_notes(self, mock_urlopen):
+    def test_update_available_with_release_notes(self, mock_urlopen, _plat):
         mock_resp = MagicMock()
         mock_resp.read.return_value = json.dumps(
             {
