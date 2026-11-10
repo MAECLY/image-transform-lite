@@ -115,7 +115,7 @@ jobs:
         # modules (3D, Multimedia, QML) have unresolved deps we don't need.
         run: |
           QT_DIR=$(python -c "import PyQt6, os; print(os.path.dirname(PyQt6.__file__))")
-          files=$(ls "$QT_DIR"/Qt*{Core,Gui,Widgets,WebEngineCore,WebEngineWidgets,WebChannel,Network}*.so \
+          files=$(ls "$QT_DIR"/Qt{Core,Gui,Widgets,WebEngineCore,WebEngineWidgets,WebChannel,Network}.abi3.so \
                      "$QT_DIR"/Qt6/lib/libQt6{Core,Gui,Widgets,WebEngineCore,WebEngineWidgets,WebChannel,Network,XcbQpa,DBus,OpenGL,Qml,Quick,Positioning}.so.6 \
                      "$QT_DIR"/Qt6/libexec/QtWebEngineProcess \
                      "$QT_DIR"/Qt6/plugins/platforms/libqxcb.so 2>/dev/null || true)
