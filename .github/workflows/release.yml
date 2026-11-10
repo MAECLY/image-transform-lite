@@ -4,98 +4,250 @@ on:
   push:
     tags:
       - "v*"
+  # Manual run: builds the 6 targets and uploads them as workflow artifacts.
+  # It never creates a GitHub Release.
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+env:
+  PYTHON_VERSION: "3.11"
+
 jobs:
-  build-and-release:
-    runs-on: macos-14
+  test:
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install dependencies
+      - name: Install test dependencies
+        # Tests do not import Qt/pywebview GUI backends, so skip PyQt6 here.
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller pytest
+          pip install "Pillow>=10.0.0,<12.0.0" "pywebview>=5.0,<6.0" "certifi>=2024.0.0" pytest
 
       - name: Run tests
         run: python -m pytest tests/ -v
 
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Verify version matches code
+      - name: Verify tag matches app/version.py
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           CODE_VERSION=$(python -c "exec(open('app/version.py').read()); print(__version__)")
-          TAG_VERSION="${{ steps.version.outputs.VERSION }}"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
           if [ "$CODE_VERSION" != "$TAG_VERSION" ]; then
             echo "ERROR: Tag version ($TAG_VERSION) does not match code version ($CODE_VERSION)"
             exit 1
           fi
 
-      - name: Build .app
+  build:
+    needs: test
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: macos-arm64
+            runner: macos-15
+            arch: arm64
+          - target: macos-x64
+            runner: macos-15-intel
+            arch: x64
+          - target: windows-x64
+            runner: windows-latest
+            arch: x64
+          # x64 Python under Prism emulation: pythonnet/clr_loader ship no
+          # arm64 ClrLoader.dll, so a native arm64 build cannot open its window.
+          - target: windows-arm64
+            runner: windows-11-arm
+            arch: x64
+          - target: linux-x64
+            runner: ubuntu-22.04
+            arch: x64
+          - target: linux-arm64
+            runner: ubuntu-22.04-arm
+            arch: arm64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          architecture: ${{ matrix.arch }}
+
+      - name: Show platform
+        run: |
+          python -c "import platform, sys; print(sys.version); print(platform.system(), platform.machine())"
+
+      - name: Install Qt runtime libraries (Linux)
+        if: runner.os == 'Linux'
+        # Shared libs needed by the PyQt6 / QtWebEngine wheels (xcb platform
+        # plugin, Chromium deps). PyInstaller collects them into the bundle.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libopengl0 libglib2.0-0 libfontconfig1 libfreetype6 \
+            libdbus-1-3 libxkbcommon0 libxkbcommon-x11-0 \
+            libxcb1 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 \
+            libxcb-xinerama0 libxcb-xkb1 libx11-xcb1 \
+            libnss3 libnspr4 libxcomposite1 libxdamage1 libxrandr2 libxtst6 \
+            libxkbfile1 libxshmfence1 libasound2 libdrm2 libgbm1 libcups2
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Check Qt WebEngine imports (Linux)
+        if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python -c "from PyQt6 import QtCore, QtWebEngineWidgets, QtWebEngineCore; import qtpy, webview.platforms.qt; print('Qt', QtCore.QT_VERSION_STR)"
+
+      - name: Build with PyInstaller
         run: pyinstaller build.spec --clean --noconfirm
 
-      - name: Create .zip artifact
+      - name: Smoke test build output
+        run: python scripts/package_release.py --check --arch "${TARGET##*-}"
+        env:
+          TARGET: ${{ matrix.target }}
+
+      - name: Package release assets
+        id: package
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
-          cd dist
-          zip -r "Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip" "Image Transform Lite.app"
+          python scripts/package_release.py --arch "${TARGET##*-}"
+          ls -la dist
 
-      - name: Create .pkg installer
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            dist/Image-Transform-Lite-*.zip
+            dist/Image-Transform-Lite-*.pkg
+            dist/Image-Transform-Lite-*.tar.gz
+
+  release:
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          path: assets
+          merge-multiple: true
+
+      - name: Verify assets
+        id: version
         run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          PKG_NAME="Image-Transform-Lite-${VERSION}-arm64.pkg"
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          ls -la assets
+          P="assets/Image-Transform-Lite-${VERSION}"
+          for f in \
+            "$P-arm64.zip" \
+            "$P-macos-arm64.pkg" "$P-macos-arm64.zip" \
+            "$P-macos-x64.pkg" "$P-macos-x64.zip" \
+            "$P-windows-x64.zip" "$P-windows-arm64.zip" \
+            "$P-linux-x64.tar.gz" "$P-linux-arm64.tar.gz"; do
+            [ -f "$f" ] || { echo "ERROR: falta $f"; exit 1; }
+          done
+          cmp "$P-arm64.zip" "$P-macos-arm64.zip"
 
-          # Create staging directory with Applications target
-          mkdir -p pkg-root/Applications
-          cp -R "dist/Image Transform Lite.app" "pkg-root/Applications/"
-
-          # Build the .pkg
-          pkgbuild \
-            --root pkg-root \
-            --identifier com.maecly.imagetransformlite \
-            --version "$VERSION" \
-            --install-location / \
-            "dist/${PKG_NAME}"
-
-      - name: Extract changelog for this version
-        id: changelog
-        shell: bash
+      - name: Build release notes
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          python3 -c "
-          import re, sys
-          text = open('CHANGELOG.md').read()
-          pattern = r'## \[' + re.escape('$VERSION') + r'\].*?\n(.*?)(?=\n## \[|\Z)'
-          m = re.search(pattern, text, re.DOTALL)
-          notes = m.group(1).strip() if m else 'Release v$VERSION'
-          print(notes)
-          " > /tmp/release_notes.txt
-          printf '\n---\n\n' >> /tmp/release_notes.txt
-          printf '### Instalacion (recomendado)\n' >> /tmp/release_notes.txt
-          printf '1. Descargar \`Image-Transform-Lite-%s-arm64.pkg\`\n' "$VERSION" >> /tmp/release_notes.txt
-          printf '2. Doble click para instalar\n' >> /tmp/release_notes.txt
-          printf '3. Se instala automaticamente en \`/Applications\`\n' >> /tmp/release_notes.txt
-          printf '4. Primera vez: click derecho -> Abrir (macOS Gatekeeper)\n\n' >> /tmp/release_notes.txt
-          printf '### Alternativa (manual)\n' >> /tmp/release_notes.txt
-          printf '1. Descargar \`Image-Transform-Lite-%s-arm64.zip\`\n' "$VERSION" >> /tmp/release_notes.txt
-          printf '2. Descomprimir y mover \`Image Transform Lite.app\` a Aplicaciones\n\n' >> /tmp/release_notes.txt
-          printf '**Plataforma:** macOS Apple Silicon (arm64)\n' >> /tmp/release_notes.txt
+          python3 - <<'PY' > release_notes.md
+          import os, re
+          v = os.environ["VERSION"]
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          m = re.search(r"## \[" + re.escape(v) + r"\].*?\n(.*?)(?=\n## \[|\Z)", text, re.DOTALL)
+          print(m.group(1).strip() if m else f"Release v{v}")
+          PY
+          P="Image-Transform-Lite-${VERSION}"
+          cat >> release_notes.md <<EOF
+
+          ---
+
+          ## Descargas
+
+          | Sistema | Archivo |
+          |---|---|
+          | macOS Apple Silicon (M1/M2/M3/M4) | \`${P}-macos-arm64.pkg\` o \`${P}-macos-arm64.zip\` |
+          | macOS Intel | \`${P}-macos-x64.pkg\` o \`${P}-macos-x64.zip\` |
+          | Windows x64 | \`${P}-windows-x64.zip\` |
+          | Windows ARM64 | \`${P}-windows-arm64.zip\` |
+          | Linux x64 | \`${P}-linux-x64.tar.gz\` |
+          | Linux ARM64 | \`${P}-linux-arm64.tar.gz\` |
+
+          \`${P}-arm64.zip\` es una copia del zip de macOS Apple Silicon para que las versiones 1.6 y anteriores puedan actualizarse automaticamente.
+
+          ### macOS
+          **Instalador (recomendado):** descarga el \`.pkg\` de tu Mac, doble click e instala. La app queda en \`/Applications\`.
+
+          **Manual:** descarga el \`.zip\`, descomprime y mueve \`Image Transform Lite.app\` a Aplicaciones.
+
+          La app no esta firmada por Apple. La primera vez: click derecho sobre la app -> **Abrir** -> **Abrir**. Si macOS dice que la app "esta danada", ejecuta en Terminal:
+
+          \`\`\`bash
+          xattr -dr com.apple.quarantine "/Applications/Image Transform Lite.app"
+          \`\`\`
+
+          ### Windows
+          1. Descarga el \`.zip\` de tu arquitectura (x64 o ARM64) y descomprimelo (click derecho -> **Extraer todo**).
+          2. Abre la carpeta \`Image Transform Lite\` y ejecuta \`Image Transform Lite.exe\`.
+          3. Si aparece SmartScreen ("Windows protegio su PC"): click en **Mas informacion** -> **Ejecutar de todas formas**.
+
+          Requiere Microsoft Edge WebView2 Runtime (incluido en Windows 10/11 actualizados).
+
+          ### Linux
+          \`\`\`bash
+          tar xzf ${P}-linux-x64.tar.gz      # o linux-arm64
+          cd image-transform-lite
+          ./install.sh                       # anade la app al menu de aplicaciones
+          ./image-transform-lite             # o abrela desde el menu
+          \`\`\`
+
+          Requiere glibc 2.35+ (Ubuntu 22.04+, Debian 12+, Fedora 36+). Si la app no abre, instala las librerias de Qt/X11, por ejemplo en Ubuntu/Debian:
+          \`sudo apt install libxcb-cursor0 libxkbcommon0 libxkbcommon-x11-0 libnss3 libegl1 libgl1\`. Para quitar el acceso directo: \`./uninstall.sh\`.
+          EOF
+          cat release_notes.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: "Image Transform Lite v${{ steps.version.outputs.VERSION }}"
-          body_path: /tmp/release_notes.txt
-          files: |
-            dist/Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.pkg
-            dist/Image-Transform-Lite-${{ steps.version.outputs.VERSION }}-arm64.zip
-          draft: false
-          prerelease: false
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          P="assets/Image-Transform-Lite-${VERSION}"
+          # The legacy asset goes FIRST (lowest asset id): v<=1.6 auto-updaters
+          # pick the first ".zip" asset whose name contains "arm64".
+          gh release create "$GITHUB_REF_NAME" "$P-arm64.zip" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Image Transform Lite v${VERSION}" \
+            --notes-file release_notes.md
+          gh release upload "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            "$P-macos-arm64.zip" "$P-macos-arm64.pkg" \
+            "$P-macos-x64.zip" "$P-macos-x64.pkg" \
+            "$P-windows-x64.zip" "$P-windows-arm64.zip" \
+            "$P-linux-x64.tar.gz" "$P-linux-arm64.tar.gz"

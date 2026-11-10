@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Image Transform Lite
+GenericName=Transformador de imagenes por lotes
+Comment=Transforma imagenes por lotes y las exporta a WebP
+Exec=image-transform-lite
+Icon=image-transform-lite
+Terminal=false
+Categories=Graphics;Utility;
+Keywords=image;webp;batch;resize;watermark;imagen;
+StartupNotify=true
+StartupWMClass=image-transform-lite

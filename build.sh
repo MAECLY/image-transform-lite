@@ -1,17 +1,28 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Build local de Image Transform Lite para el sistema actual
+# (macOS .app, Windows carpeta con .exe via Git Bash, Linux carpeta + .tar.gz).
 set -e
 
-PYTHON="/opt/homebrew/opt/python@3.11/bin/python3.11"
+cd "$(dirname "$0")"
+
+# Python 3.11 recomendado; se puede forzar con PYTHON=/ruta/python ./build.sh
+if [ -z "$PYTHON" ]; then
+    for candidate in python3.11 /opt/homebrew/opt/python@3.11/bin/python3.11 python3 python; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            PYTHON="$(command -v "$candidate")"
+            break
+        fi
+    done
+fi
+if [ -z "$PYTHON" ]; then
+    echo "Error: Python 3 no encontrado (macOS: brew install python@3.11)"
+    exit 1
+fi
+
 VENV_DIR="build_venv"
 
 echo "=== Image Transform Lite - Build ==="
-
-# Check Python 3.11
-if [ ! -f "$PYTHON" ]; then
-    echo "Error: Python 3.11 no encontrado en $PYTHON"
-    echo "Instalar con: brew install python@3.11"
-    exit 1
-fi
+"$PYTHON" --version
 
 # Create venv
 if [ ! -d "$VENV_DIR" ]; then
@@ -20,17 +31,22 @@ if [ ! -d "$VENV_DIR" ]; then
 fi
 
 # Activate and install
-source "$VENV_DIR/bin/activate"
+if [ -f "$VENV_DIR/Scripts/activate" ]; then
+    source "$VENV_DIR/Scripts/activate"
+else
+    source "$VENV_DIR/bin/activate"
+fi
 echo "Instalando dependencias..."
-pip install --upgrade pip -q
-pip install -r requirements.txt pyinstaller -q
+python -m pip install --upgrade pip -q
+python -m pip install -r requirements.txt pyinstaller -q
 
 # Build
-echo "Construyendo .app..."
+echo "Construyendo..."
 pyinstaller build.spec --clean --noconfirm
+
+# Smoke check + release assets for this platform
+python scripts/package_release.py
 
 echo ""
 echo "=== Build completado ==="
-echo "App: dist/Image Transform Lite.app"
-echo ""
-echo "Para distribuir: zip -r 'Image Transform Lite.zip' 'dist/Image Transform Lite.app'"
+echo "Assets en dist/"
