@@ -111,11 +111,18 @@ jobs:
 
       - name: List missing shared libraries (Linux)
         if: runner.os == 'Linux'
+        # Only the Qt pieces the app loads (widgets + WebEngine + xcb). Unused
+        # modules (3D, Multimedia, QML) have unresolved deps we don't need.
         run: |
           QT_DIR=$(python -c "import PyQt6, os; print(os.path.dirname(PyQt6.__file__))")
-          missing=$(find "$QT_DIR" -name '*.so*' -type f -exec ldd {} \; 2>/dev/null | grep 'not found' | sort -u || true)
+          files=$(ls "$QT_DIR"/Qt*{Core,Gui,Widgets,WebEngineCore,WebEngineWidgets,WebChannel,Network}*.so \
+                     "$QT_DIR"/Qt6/lib/libQt6{Core,Gui,Widgets,WebEngineCore,WebEngineWidgets,WebChannel,Network,XcbQpa,DBus,OpenGL,Qml,Quick,Positioning}.so.6 \
+                     "$QT_DIR"/Qt6/libexec/QtWebEngineProcess \
+                     "$QT_DIR"/Qt6/plugins/platforms/libqxcb.so 2>/dev/null || true)
+          echo "$files"
+          missing=$(for f in $files; do ldd "$f" 2>/dev/null; done | grep 'not found' | sort -u || true)
           if [ -n "$missing" ]; then echo "Missing libraries:"; echo "$missing"; exit 1; fi
-          echo "All Qt shared libraries resolved"
+          echo "All required Qt shared libraries resolved"
 
       - name: Check Qt WebEngine imports (Linux)
         if: runner.os == 'Linux'
