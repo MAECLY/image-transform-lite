@@ -101,12 +101,21 @@ jobs:
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 \
             libxcb-xinerama0 libxcb-xkb1 libx11-xcb1 \
             libnss3 libnspr4 libxcomposite1 libxdamage1 libxrandr2 libxtst6 \
-            libxkbfile1 libxshmfence1 libasound2 libdrm2 libgbm1 libcups2
+            libxkbfile1 libxshmfence1 libasound2 libdrm2 libgbm1 libcups2 \
+            libevent-2.1-7 libminizip1 libxslt1.1 libsnappy1v5 libopus0 libwebpdemux2 libharfbuzz0b
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt pyinstaller
+
+      - name: List missing shared libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          QT_DIR=$(python -c "import PyQt6, os; print(os.path.dirname(PyQt6.__file__))")
+          missing=$(find "$QT_DIR" -name '*.so*' -type f -exec ldd {} \; 2>/dev/null | grep 'not found' | sort -u || true)
+          if [ -n "$missing" ]; then echo "Missing libraries:"; echo "$missing"; exit 1; fi
+          echo "All Qt shared libraries resolved"
 
       - name: Check Qt WebEngine imports (Linux)
         if: runner.os == 'Linux'
