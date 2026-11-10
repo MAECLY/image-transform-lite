@@ -3,6 +3,24 @@
 Todos los cambios notables de este proyecto se documentan aqui.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.7.0] - 2026-11-09
+
+### Added
+
+- **Builds multiplataforma**: la app se distribuye para 6 objetivos: macOS Apple Silicon (arm64), macOS Intel (x64), Windows x64, Windows ARM64, Linux x64 y Linux ARM64. GitHub Actions compila cada uno en su runner nativo (`macos-15`, `macos-15-intel`, `windows-latest`, `windows-11-arm`, `ubuntu-22.04`, `ubuntu-22.04-arm`).
+- **Configuración por sistema operativo**: en la app empaquetada, la configuración y los presets se guardan en `~/Library/Application Support/ImageTransformLite` (macOS, sin cambios), `%APPDATA%\ImageTransformLite` (Windows) y `$XDG_CONFIG_HOME/ImageTransformLite` (Linux, por defecto `~/.config/ImageTransformLite`).
+- **Actualizador consciente de la plataforma**: el actualizador detecta el sistema y la arquitectura y descarga el asset que corresponde (`-<os>-<arch>.`). En macOS prefiere el `.zip`; en Linux usa el `.tar.gz`.
+- **Instalador para Linux**: el `.tar.gz` incluye un `install.sh` que registra la app en el menú de aplicaciones (`~/.local/share/applications`) con su archivo `.desktop` e icono.
+- **CI en 3 sistemas operativos**: los tests se ejecutan en macOS, Windows y Linux.
+- Iconos `assets/icon.ico` y `assets/icon.png` generados a partir de `assets/icon.icns`.
+
+### Changed
+
+- **Nombres de los assets**: ahora siguen el patrón `Image-Transform-Lite-<version>-<os>-<arch>.<ext>` (por ejemplo `Image-Transform-Lite-1.7.0-windows-x64.zip`). Se mantiene además `Image-Transform-Lite-<version>-arm64.zip` (copia del zip de macOS arm64) para que los auto-actualizadores de la v1.6 y anteriores sigan encontrando la actualización.
+- **Watermark**: la fuente de la marca de agua usa un fallback distinto según el sistema operativo.
+- **Modal de actualización**: las instrucciones de instalación se adaptan al sistema operativo.
+- Linux usa pywebview con el backend Qt (PyQt6 + Qt WebEngine); Windows usa Edge WebView2; macOS sigue con WebKit (Cocoa).
+
 ## [1.6.0] - 2026-10-18
 
 ### Changed

@@ -32,5 +32,6 @@
 ## 🔴 Phase 4: Hardening & Distribution
 
 - [x] **Comprehensive Test Suite**: Regression tests for processor module (29 tests) and all transforms (20 tests). 77 total tests.
+- [x] **Multiplatform Distribution**: v1.7.0 builds for macOS, Windows and Linux (arm64 + x64) with a platform-aware updater.
 - [ ] **App Bundle Optimization**: Minimize binary size and optimize startup time.
 - [ ] **User Feedback Loop**: Basic feedback mechanism.
